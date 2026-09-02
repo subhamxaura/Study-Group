@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(grep -E \"^\\(tsc|next\\)$\")",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(npm run *)"
+    ]
+  }
+}

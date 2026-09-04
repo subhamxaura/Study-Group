@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,119 +8,43 @@ import { Button, Input, Card } from '@/components/ui'
 import { useAuthStore } from '@/lib/store'
 import { generateId } from '@/lib/utils'
 
-export default function RegisterPage() {
-  const router = useRouter()
-  const { setAuth } = useAuthStore()
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    await new Promise((r) => setTimeout(r, 1000))
-
-    const newUser = {
-      id: generateId(),
-      name: formData.name,
-      email: formData.email,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    setAuth(newUser, generateId())
-    router.push('/groups')
+export default function RegisterPage(){
+  const router=useRouter(); const { setAuth }=useAuthStore()
+  const [form,setForm]=useState({name:'',email:'',password:''}); const [show,setShow]=useState(false); const [submitting,setSubmitting]=useState(false)
+  const handleSubmit=async(e:React.FormEvent)=>{
+    e.preventDefault(); setSubmitting(true); await new Promise(r=> setTimeout(r,800))
+    const u={ id: generateId(), name: form.name, email: form.email, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()}
+    setAuth(u as any, generateId()); router.push('/groups')
   }
-
   return (
-    <div className="min-h-screen page-container flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-velvet-radial opacity-30" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-        className="relative w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="h-16 w-16 rounded-2xl bg-gradient-to-br from-velvet-royal to-velvet-plum mx-auto mb-4 flex items-center justify-center shadow-glow-purple"
-          >
-            <UserPlus className="h-8 w-8 text-text-primary" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-text-primary">
-            Create your account
-          </h1>
-          <p className="text-text-muted mt-2">Join the SubCrack community</p>
+    <div className="min-h-screen bg-[rgb(var(--sg-background))] flex">
+      <div className="hidden lg:flex flex-1 flex-col justify-between p-10 bg-white dark:bg-zinc-900 border-r">
+        <Link href="/" className="flex items-center gap-2"><span className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">S</span><span className="font-semibold">Study-Group</span></Link>
+        <div className="max-w-md">
+          <h2 className="text-3xl font-semibold tracking-tight">Create your workspace.</h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-[rgb(var(--sg-secondary))]">Start a study group, invite classmates and keep everything organized from day one.</p>
         </div>
-
-        <Card variant="glass" className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Full Name"
-              type="text"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-              required
-            />
-
-            <Input
-              label="Email address"
-              type="email"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-              required
-            />
-
-            <div className="relative">
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-10 p-1 text-text-muted hover:text-text-primary transition-colors"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              isLoading={isSubmitting}
-              disabled={isSubmitting}
-            >
-              <UserPlus className="h-4 w-4" />
-              Create Account
-            </Button>
-          </form>
-        </Card>
-
-        <p className="text-center text-sm text-text-muted mt-6">
-          Already have an account?{' '}
-          <Link href="/login" className="text-accent-gold hover:text-accent-gold-muted transition-colors">
-            Sign in
-          </Link>
-        </p>
-      </motion.div>
+        <p className="text-xs text-[rgb(var(--sg-muted))]">© {new Date().getFullYear()} Study-Group</p>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.28}} className="w-full max-w-[440px]">
+          <Card className="p-6 sm:p-7">
+            <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>
+            <p className="mt-1 text-sm text-[rgb(var(--sg-secondary))]">Join thousands of students studying together.</p>
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <Input label="Full name" placeholder="Aarav Sharma" value={form.name} onChange={e=> setForm(p=>({...p,name:e.target.value}))} required />
+              <Input label="Email address" type="email" placeholder="you@university.edu" value={form.email} onChange={e=> setForm(p=>({...p,email:e.target.value}))} required />
+              <div className="relative">
+                <Input label="Password" type={show?'text':'password'} placeholder="At least 8 characters" value={form.password} onChange={e=> setForm(p=>({...p,password:e.target.value}))} required />
+                <button type="button" onClick={()=> setShow(!show)} className="absolute right-2.5 top-[32px] p-1.5 rounded-md hover:bg-[rgb(var(--sg-hover))] text-[rgb(var(--sg-muted))]">{show?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}</button>
+              </div>
+              <Button type="submit" className="w-full" size="lg" isLoading={submitting} disabled={submitting}><UserPlus className="h-4 w-4"/> Create account</Button>
+              <p className="text-xs text-center text-[rgb(var(--sg-muted))]">By creating an account you agree to our Terms and Privacy.</p>
+            </form>
+          </Card>
+          <p className="mt-4 text-center text-sm text-[rgb(var(--sg-secondary))]">Already have an account? <Link href="/login" className="font-medium text-indigo-600 dark:text-indigo-400">Sign in</Link></p>
+        </motion.div>
+      </div>
     </div>
   )
 }

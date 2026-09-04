@@ -1,257 +1,329 @@
 'use client'
-
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, BookOpen, Calendar, MessageCircle, Users, Sparkles, Clock3, Layers, Trophy, Activity, FileText, Flame, UserPlus, Timer, PlayCircle } from 'lucide-react'
-import { Button, Card } from '@/components/ui'
-import { NeuralFloat, ScrollStack } from '@/components/ui/neural'
+import { ArrowRight, Users, MessageCircle, Calendar, BookOpen, Check, Search, Sparkles, BarChart3, Layers, GraduationCap, Clock, Shield, Zap } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { useAuthStore } from '@/lib/store'
 
+const howItWorks = [
+  { n: '01', title: 'Find or create a group', desc: 'Browse by subject, university or semester. Join in one tap or start your own.' },
+  { n: '02', title: 'Collaborate daily', desc: 'Discuss, share notes and schedule sessions — all inside one workspace.' },
+  { n: '03', title: 'Track progress', desc: 'Tasks, resources and activity make momentum visible for the whole group.' },
+]
+
 const features = [
-  { icon: Users, title: 'Find your people', description: 'Connect with classmates studying the same subject and working toward similar goals.' },
-  { icon: MessageCircle, title: 'Study together', description: 'Keep questions, explanations, and ideas in one focused conversation.' },
-  { icon: Calendar, title: 'Stay consistent', description: 'Plan shared sessions so revision happens when it matters most.' },
-  { icon: BookOpen, title: 'Share knowledge', description: 'Build a useful group library of notes, links, files, and explanations.' },
+  { icon: Users, title: 'Study groups that stay organized', desc: 'Keep members, roles and activity in one place. No scattered DMs.' },
+  { icon: MessageCircle, title: 'Focused discussions', desc: 'Threads for questions, explanations and decisions — searchable and pinned.' },
+  { icon: BookOpen, title: 'Resource library', desc: 'PDFs, notes, links and videos with filters, search and upload.' },
+  { icon: Calendar, title: 'Sessions & schedule', desc: 'Plan sessions, set reminders and see what’s next at a glance.' },
+  { icon: BarChart3, title: 'Progress you can feel', desc: 'Tasks, streaks and completion keep consistency without micromanagement.' },
+  { icon: Shield, title: 'Private by default', desc: 'You control who joins. Invite links and roles keep groups safe.' },
 ]
 
-const stackCards = [
-  {
-    id: '01',
-    accent: '#D000FF',
-    node: (
-      <div className="p-7 sm:p-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D000FF]/22 bg-[#D000FF]/10 px-2.5 py-1"><span className="text-[11px] font-bold tracking-[0.14em] text-[#E8D4FF]">01 — FIND YOUR PEOPLE</span></div>
-        <h3 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Find your people</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/65 max-w-[36rem]">Connect with students studying the same subjects. Discover groups by topic, level, and active members.</p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="flex -space-x-2">
-            {['#6D00FF','#9B00FF','#4C5CFF','#D000FF'].map((c,i)=>(<span key={i} className="h-8 w-8 rounded-full border border-black/40 flex items-center justify-center text-[11px] font-semibold text-white" style={{background:`radial-gradient(circle at 35% 30%, ${c}, #0a0a14)`}}>{String.fromCharCode(65+i)}</span>))}
+function DashboardPreview() {
+  return (
+    <div className="relative overflow-hidden rounded-xl border bg-white shadow-large dark:bg-[rgb(var(--sg-card))] dark:border-[rgb(var(--sg-border))]">
+      {/* window header */}
+      <div className="flex items-center justify-between border-b px-4 py-3 bg-[rgb(var(--sg-surface-muted))] dark:bg-transparent">
+        <div className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full bg-red-400" />
+          <span className="h-3 w-3 rounded-full bg-amber-400" />
+          <span className="h-3 w-3 rounded-full bg-emerald-400" />
+        </div>
+        <div className="hidden sm:flex items-center gap-2 text-xs text-[rgb(var(--sg-muted))]">
+          <span className="hidden md:inline-flex items-center gap-1.5 rounded-md border bg-white px-2 py-1 dark:bg-[rgb(var(--sg-card))]"><Search className="h-3.5 w-3.5" />Search groups, resources… <span className="ml-2 hidden lg:inline rounded bg-[rgb(var(--sg-hover))] px-1.5 py-0.5 text-[10px]">⌘K</span></span>
+        </div>
+        <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-medium">S</div>
+      </div>
+      <div className="grid md:grid-cols-[220px_1fr] gap-0">
+        <div className="hidden md:block border-r p-3 space-y-4 bg-[rgb(var(--sg-surface-muted))]/50 dark:bg-transparent">
+          <div className="space-y-1">
+            <div className="h-8 rounded-lg bg-indigo-600 text-white flex items-center gap-2 px-3 text-sm font-medium"><Layers className="h-4 w-4" /> Dashboard</div>
+            <div className="h-7 rounded-md px-3 flex items-center gap-2 text-sm text-[rgb(var(--sg-secondary))]"><Users className="h-4 w-4" /> My Groups</div>
+            <div className="h-7 rounded-md px-3 flex items-center gap-2 text-sm text-[rgb(var(--sg-secondary))]"><Search className="h-4 w-4" /> Discover</div>
+            <div className="h-7 rounded-md px-3 flex items-center gap-2 text-sm text-[rgb(var(--sg-secondary))]"><MessageCircle className="h-4 w-4" /> Messages <span className="ml-auto text-xs bg-red-500 text-white rounded-full px-1.5">3</span></div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.07] border border-white/10 px-3 py-1.5 text-xs text-white/80"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)] animate-pulse" /> 12 active now</span>
-          <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs text-white/60">Mathematics • Physics • CS</span>
+          <div className="pt-3 border-t space-y-2">
+            <p className="text-[11px] font-semibold tracking-widest text-[rgb(var(--sg-muted))] uppercase">Your groups</p>
+            {['Advanced Mathematics','Computer Science Hub','Physics Circle'].map(n=>(
+              <div key={n} className="flex items-center gap-2 text-sm">
+                <span className="h-7 w-7 rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-semibold">{n[0]}</span>
+                <span className="truncate text-sm">{n}</span><span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white text-[#0A0A0F] px-4 py-2.5 text-sm font-semibold"><UserPlus className="h-4 w-4" /> Join discovery</div>
-      </div>
-    ),
-  },
-  {
-    id: '02',
-    accent: '#9B00FF',
-    node: (
-      <div className="p-7 sm:p-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#9B00FF]/22 bg-[#9B00FF]/10 px-2.5 py-1"><span className="text-[11px] font-bold tracking-[0.14em] text-[#E8D4FF]">02 — STUDY TOGETHER</span></div>
-        <h3 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Study together</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/65 max-w-[36rem]">Turn individual study into collaborative sessions. Live timers, presence, and focus — in one place.</p>
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3"><div className="flex items-center gap-1.5 text-[11px] tracking-wide text-white/60"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE</div><p className="mt-1 font-mono text-sm font-semibold text-white">02:34:18</p><p className="text-xs text-white/50">Focus session</p></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3"><p className="text-xs text-white/60">Active</p><p className="mt-1 text-sm font-semibold text-white">8 students</p><p className="text-xs text-white/50">in this session</p></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3 flex flex-col justify-center"><div className="flex items-center gap-1 text-white"><Timer className="h-4 w-4 text-white/70" /> <span className="text-sm font-semibold">Next at 18:00</span></div><p className="text-xs text-white/50">Calculus review</p></div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: '03',
-    accent: '#4C5CFF',
-    node: (
-      <div className="p-7 sm:p-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#4C5CFF]/22 bg-[#4C5CFF]/10 px-2.5 py-1"><span className="text-[11px] font-bold tracking-[0.14em] text-[#DDE0FF]">03 — SHARE KNOWLEDGE</span></div>
-        <h3 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Share knowledge</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/65 max-w-[36rem]">Share notes, resources, questions and explanations. Keep the best material one tap away.</p>
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          {[
-            {icon: FileText, name:'Diff-EQ cheat sheet', meta:'PDF • 245 KB', tint:'#9B00FF'},
-            {icon: PlayCircle, name:'Khan — Linear Algebra', meta:'Link • External', tint:'#4C5CFF'},
-            {icon: Layers, name:'Problem set ch.5', meta:'PDF • 890 KB', tint:'#6D00FF'},
-          ].map(s=>(
-            <div key={s.name} className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{background: `${s.tint}18`, border:`1px solid ${s.tint}22`}}><s.icon className="h-4 w-4 text-white/80" /></div>
-              <p className="mt-2 text-xs font-semibold text-white leading-tight line-clamp-2">{s.name}</p>
-              <p className="text-[11px] text-white/45">{s.meta}</p>
+        <div className="p-4 sm:p-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm text-[rgb(var(--sg-muted))]">Good evening, Subham 👋</p>
+              <h3 className="text-lg font-semibold tracking-tight">Here’s what your study space looks like today.</h3>
             </div>
-          ))}
+            <span className="inline-flex items-center gap-1.5 text-xs rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"/> 3 groups active</span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[{k:'Active Groups',v:'5', sub:'2 sessions today'},{k:'Study Hours',v:'24.5h', sub:'+3.2h this week'},{k:'Tasks',v:'12/18', sub:'67% completed'},{k:'Upcoming',v:'3', sub:'Next in 2 hours'}].map(s=>(
+              <div key={s.k} className="rounded-xl border bg-[rgb(var(--sg-card))] p-3">
+                <p className="text-xs text-[rgb(var(--sg-muted))]">{s.k}</p>
+                <p className="mt-1 text-xl font-semibold">{s.v}</p>
+                <p className="text-xs text-[rgb(var(--sg-muted))]">{s.sub}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-[1.4fr_0.9fr] gap-4">
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center justify-between"><p className="text-sm font-semibold">Your Study Groups</p><span className="text-xs text-indigo-600 dark:text-indigo-300 font-medium">View all</span></div>
+              <div className="mt-3 space-y-2">
+                {[
+                  {n:'Advanced Mathematics', meta:'Calculus • 12 members • Next: Tomorrow 6PM', prog:'72%'},
+                  {n:'Computer Science Hub', meta:'DSA • 8 members • Live now', prog:'54%'},
+                ].map(g=>(
+                  <div key={g.n} className="flex items-center gap-3 rounded-lg border p-2.5 bg-[rgb(var(--sg-surface-muted))]/60 dark:bg-transparent">
+                    <span className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">{g.n[0]}</span>
+                    <div className="min-w-0 flex-1"><p className="text-sm font-medium truncate">{g.n}</p><p className="text-xs text-[rgb(var(--sg-muted))] truncate">{g.meta}</p></div>
+                    <div className="hidden sm:block text-right"><p className="text-xs font-medium">{g.prog}</p><div className="mt-1 h-1.5 w-16 rounded-full bg-[rgb(var(--sg-border))] overflow-hidden"><span className="block h-full bg-indigo-600" style={{width:g.prog}}/></div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl border p-3">
+              <p className="text-sm font-semibold flex items-center gap-1.5"><Clock className="h-4 w-4 text-[rgb(var(--sg-muted))]" /> Upcoming</p>
+              <div className="mt-3 space-y-2">
+                <div className="rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 p-2.5"><p className="text-xs font-medium">Linear Algebra Review</p><p className="text-xs text-[rgb(var(--sg-muted))]">Tomorrow • 6:00 PM • Library Room 204</p></div>
+                <div className="rounded-lg border p-2.5"><p className="text-xs font-medium">Submit Problem Set — Ch.5</p><p className="text-xs text-[rgb(var(--sg-muted))]">Due in 2 days • Advanced Mathematics</p></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    ),
-  },
-  {
-    id: '04',
-    accent: '#1800FF',
-    node: (
-      <div className="p-7 sm:p-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#1800FF]/24 bg-[#1800FF]/12 px-2.5 py-1"><span className="text-[11px] font-bold tracking-[0.14em] text-[#DDE0FF]">04 — BUILD CONSISTENCY</span></div>
-        <h3 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Build consistency</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/65 max-w-[36rem]">Track goals, progress and streaks. Small wins, made visible, keep momentum alive.</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] px-4 py-3 flex items-center gap-3"><span className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center"><Flame className="h-5 w-5 text-white" /></span><div><p className="text-sm font-bold text-white">14-day streak</p><p className="text-xs text-white/55">Don&apos;t break the chain</p></div></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] px-4 py-3 min-w-[160px]"><p className="text-xs text-white/60 flex items-center gap-1"><Activity className="h-3.5 w-3.5" /> Weekly progress</p><div className="mt-2 h-2 rounded-full bg-white/10 overflow-hidden"><span className="block h-full w-[68%] rounded-full" style={{background:'linear-gradient(90deg,#6D00FF,#9B00FF)'}} /></div><p className="mt-1 text-xs text-white/50">68% of goal</p></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] px-4 py-3 flex items-center gap-2 text-white"><Trophy className="h-4 w-4 text-amber-300" /> <span className="text-sm font-semibold">3 goals completed</span></div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: '05',
-    accent: '#EDE9FF',
-    node: (
-      <div className="p-7 sm:p-8">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-2.5 py-1"><span className="text-[11px] font-bold tracking-[0.14em] text-white/80">05 — GROW TOGETHER</span></div>
-        <h3 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Grow together</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/65 max-w-[36rem]">A community that learns together, grows together. Celebrate achievements and shared progress.</p>
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3"><p className="text-xs text-white/60">Community</p><p className="mt-1 text-sm font-semibold text-white">1,248 members</p><p className="text-xs text-white/50">across 86 groups</p></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3"><p className="text-xs text-white/60">Avg. session</p><p className="mt-1 text-sm font-semibold text-white flex items-center gap-1"><Clock3 className="h-3.5 w-3.5 text-white/60" /> 52 min</p></div>
-          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3"><p className="text-xs text-white/60">Achievements</p><p className="mt-1 text-sm font-semibold text-white">+24 this week</p></div>
-        </div>
-      </div>
-    ),
-  },
-]
+    </div>
+  )
+}
 
-export default function HomePage() {
+export default function HomePage(){
   const router = useRouter()
   const { user, isLoading } = useAuthStore()
   const reduceMotion = useReducedMotion()
-
-  useEffect(() => {
-    if (user && !isLoading) router.push('/groups')
-  }, [user, isLoading, router])
+  useEffect(()=>{ if(user && !isLoading) router.push('/groups') }, [user,isLoading,router])
 
   return (
-    <div className="page-container relative overflow-hidden bg-[#020203]">
-      {/* Premium translucent nav — stays minimal per spec */}
-      <nav className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/[0.06]" style={{ background: 'rgba(2,2,3,0.52)' }} aria-label="Main navigation">
-        <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
-          <Link href="/" className="flex items-center gap-3 focus-visible-ring rounded-xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-white shadow-[0_0_16px_rgba(109,0,255,0.55)]" style={{ background: 'linear-gradient(135deg,#6D00FF,#9B00FF 60%,#D000FF)' }}>SC</span>
-            <span className="text-[17px] font-semibold tracking-tight text-white">SubCrack</span>
+    <div className="min-h-screen bg-[rgb(var(--sg-background))]">
+      {/* Nav */}
+      <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--sg-card))]/80 border-b">
+        <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 h-[64px] flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">S</span>
+            <span className="text-[15px] font-semibold tracking-tight">Study-Group</span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login"><Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/[0.06] border border-transparent hover:border-white/10">Sign In</Button></Link>
-            <Link href="/register"><Button variant="primary" size="sm">Get Started</Button></Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm text-[rgb(var(--sg-secondary))]">
+            <a href="#how" className="hover:text-[rgb(var(--sg-foreground))]">How it works</a>
+            <a href="#features" className="hover:text-[rgb(var(--sg-foreground))]">Features</a>
+            <a href="#resources" className="hover:text-[rgb(var(--sg-foreground))]">Resources</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="hidden sm:inline-flex btn btn-ghost btn-sm">Sign in</Link>
+            <Link href="/register" className="btn btn-primary btn-sm">Get started <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* HERO — Cinematic Neural Float as atmospheric visual layer */}
-      <section className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-        <div className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-white/[0.07] bg-[#020203] shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
-          <div className="absolute inset-0">
-            <NeuralFloat className="absolute inset-0" density="medium" speed={reduceMotion ? 0.06 : 0.34} />
-            <div className="hero-vignette absolute inset-0" aria-hidden="true" />
-            {/* Bottom haze like reference */}
-            <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[44%] bg-gradient-to-t from-[#020203] via-[#020203]/78 to-transparent" />
-            <div aria-hidden="true" className="absolute left-0 right-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      {/* Hero */}
+      <section className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-8">
+        <motion.div initial={reduceMotion?false:{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.45}} className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border bg-[rgb(var(--sg-card))] px-3 py-1 text-xs font-medium shadow-sm"><Sparkles className="h-3.5 w-3.5 text-indigo-600" /> Study smarter. Together.</span>
+          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-[52px] font-semibold tracking-tight leading-[1.05] text-balance">
+            Your study group,<br /><span className="text-indigo-600 dark:text-indigo-400">all in one place.</span>
+          </h1>
+          <p className="mt-4 text-base sm:text-lg leading-relaxed text-[rgb(var(--sg-secondary))] max-w-2xl mx-auto text-balance">
+            Find groups by subject, create your own, share resources, discuss topics and track progress — one organized workspace for focused learning.
+          </p>
+          <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/register" className="w-full sm:w-auto btn btn-primary btn-lg">Find a Study Group <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/login" className="w-full sm:w-auto btn btn-secondary btn-lg">Create a Group</Link>
           </div>
+          <p className="mt-3 text-xs text-[rgb(var(--sg-muted))]">Free to start • No credit card required • Trusted by 2,000+ students</p>
+        </motion.div>
 
-          <div className="relative grid min-h-[560px] sm:min-h-[600px] lg:min-h-[640px] items-center px-5 py-12 sm:px-10 lg:px-12">
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="mx-auto max-w-3xl text-center"
-            >
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur">
-                <span className="h-2 w-2 rounded-full bg-[#D000FF] shadow-[0_0_10px_rgba(208,0,255,0.9)] animate-pulse" aria-hidden="true" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">Learn together</span>
-              </div>
-
-              <h1 className="mt-6 text-5xl font-semibold leading-[0.95] tracking-[-0.045em] text-white sm:text-6xl lg:text-[72px]">
-                Your study group,
-                <span className="block bg-gradient-to-r from-[#C8A2FF] via-[#B07AFF] to-[#D000FF] bg-clip-text text-transparent">reimagined.</span>
-              </h1>
-              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/62 sm:text-lg">
-                Find focused study groups, collaborate with classmates, share knowledge, and make learning more social — in a living digital space.
-              </p>
-
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/register" className="w-full sm:w-auto">
-                  <Button variant="primary" size="lg" className="w-full sm:w-auto px-8 py-4">
-                    Find a Study Group <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/login" className="w-full sm:w-auto">
-                  <Button variant="secondary" size="lg" className="w-full sm:w-auto px-8 py-4">
-                    Create a Group
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-2 text-xs text-white/45">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/10 px-3 py-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Trusted by 2,000+ students</span>
-                <span className="hidden sm:inline text-white/25">•</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] border border-white/10 px-3 py-1.5">No credit card required</span>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        <motion.div initial={reduceMotion?false:{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.5, delay:0.08}} className="mt-10">
+          <DashboardPreview />
+          <p className="mt-3 text-center text-xs text-[rgb(var(--sg-muted))]">Interactive preview — no signup required to explore</p>
+        </motion.div>
       </section>
 
-      {/* Subtle connector haze */}
-      <div aria-hidden="true" className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10"><div className="h-px mt-10 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" /></div>
-
-      {/* Everything your group needs — feature grid */}
-      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-6 pt-12 sm:px-8 lg:px-10" aria-labelledby="learning-tools">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold tracking-[0.16em] text-[#C8A2FF] uppercase">The toolkit</p>
-            <h2 id="learning-tools" className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Everything your group needs to make progress.</h2>
-          </div>
-          <p className="text-sm text-white/55 max-w-sm">Discovery, live sessions, resources and consistency — designed as one continuous flow.</p>
+      {/* How it works */}
+      <section id="how" className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-semibold tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">How it works</p>
+          <h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight">From discovery to daily momentum.</h2>
         </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {features.map((feature, index) => (
-            <motion.div key={feature.title} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45, delay: reduceMotion ? 0 : index * 0.06, ease: [0.16, 1, 0.3, 1] }}>
-              <Card variant="glass" hover className="group h-full p-6 sm:p-7">
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white shadow-[0_0_18px_rgba(109,0,255,0.18)] group-hover:border-[#9B00FF]/30 group-hover:shadow-[0_0_22px_rgba(109,0,255,0.22)] transition-all">
-                  <feature.icon className="h-5 w-5 text-white/90" />
-                </div>
-                <h3 className="mb-2 text-lg font-semibold text-white">{feature.title}</h3>
-                <p className="leading-relaxed text-white/60">{feature.description}</p>
-              </Card>
-            </motion.div>
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+          {howItWorks.map(s=>(
+            <div key={s.n} className="rounded-xl border bg-[rgb(var(--sg-card))] p-6">
+              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-indigo-600 text-white text-xs font-bold px-2">{s.n}</span>
+              <h3 className="mt-3 text-base font-semibold">{s.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--sg-secondary))]">{s.desc}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* SCROLL STACK — cinematic section */}
-      <section aria-labelledby="immersive-stack" className="relative mx-auto max-w-7xl px-0 sm:px-2 lg:px-0">
-        <div className="px-5 sm:px-8 lg:px-10 pt-6">
-          <p className="text-xs font-semibold tracking-[0.16em] text-[#C8A2FF] uppercase">Immersive</p>
-          <h2 id="immersive-stack" className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Everything you need to study better.</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">Scroll — cards pin, stack, overlap and transform with depth and light. The Neural Float continues to live behind them.</p>
+      {/* Features */}
+      <section id="features" className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-xl"><p className="text-xs font-semibold tracking-widest text-indigo-600 uppercase">Product</p><h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight">Everything your group needs — without the clutter.</h2></div>
+          <p className="max-w-sm text-sm text-[rgb(var(--sg-secondary))]">Keep study social, but structured. Every feature is designed for focus, not noise.</p>
         </div>
-
-        {/* Ambient neural field behind stack — subtle so cards remain dominant */}
-        <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.38] overflow-hidden hidden sm:block" aria-hidden="true">
-          <NeuralFloat density="low" speed={reduceMotion ? 0.05 : 0.2} className="h-full w-full" />
+        <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {features.map(f=>(
+            <div key={f.title} className="rounded-xl border bg-[rgb(var(--sg-card))] p-6 hover:shadow-medium transition-shadow">
+              <span className="h-10 w-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-300"><f.icon className="h-5 w-5" /></span>
+              <h3 className="mt-4 text-sm font-semibold">{f.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--sg-secondary))]">{f.desc}</p>
+            </div>
+          ))}
         </div>
-
-        <ScrollStack cards={stackCards} className="mt-2" />
       </section>
 
-      {/* Final CTA */}
-      <section className="relative mx-auto max-w-7xl px-5 pb-12 sm:px-8 lg:px-10">
-        <div className="relative overflow-hidden rounded-[28px] border border-white/[0.07] bg-gradient-to-br from-[#0E0B1A] via-[#120E2A] to-[#0A0A0F] p-7 sm:p-10">
-          <div className="absolute inset-0 opacity-60" aria-hidden="true" style={{ background: 'radial-gradient(700px 400px at 75% 0%, rgba(155,0,255,0.18), transparent 68%), radial-gradient(560px 360px at 8% 90%, rgba(24,0,255,0.12), transparent 62%)' }} />
-          <div className="absolute inset-0" aria-hidden="true"><NeuralFloat density="low" speed={reduceMotion ? 0.04 : 0.18} className="h-full w-full opacity-40" /></div>
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-2xl font-semibold tracking-tight text-white">Ready to learn together?</h3>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/60">Join a group in minutes. Bring your course, your goals, and your curiosity.</p>
+      {/* Collaboration */}
+      <section className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid lg:grid-cols-2 gap-8 items-center rounded-2xl border bg-[rgb(var(--sg-card))] p-6 sm:p-8">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 text-xs font-medium"><MessageCircle className="h-3.5 w-3.5" /> Discussion</span>
+            <h3 className="mt-3 text-2xl font-semibold tracking-tight">Focused collaboration, not endless chats.</h3>
+            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--sg-secondary))]">Ask questions, explain concepts, pin answers and search everything later. Mentions, attachments and replies keep context intact.</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {['Pinned answers for quick revision','Replies keep threads tidy','Search across all discussions'].map(t=>(
+                <li key={t} className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center"><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /></span>{t}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border bg-[rgb(var(--sg-surface-muted))] p-4 space-y-3 dark:bg-[rgb(var(--sg-background))]">
+            {[
+              {n:'Alex Morgan', t:'2m ago', m:'Has anyone solved problem 4? Separation of variables isn’t clicking.'},
+              {n:'Jordan Lee', t:'1m ago', m:'Yep — move all y terms left, x terms right, then integrate. I’ll pin the steps.'},
+              {n:'Taylor', t:'now', m:'I shared my handwritten notes in Resources — see “ODE cheat sheet”.', pin:true},
+            ].map(row=>(
+              <div key={row.n} className="rounded-lg border bg-[rgb(var(--sg-card))] p-3 flex gap-3">
+                <span className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">{row.n[0]}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2"><span className="text-sm font-medium">{row.n}</span><span className="text-xs text-[rgb(var(--sg-muted))]">{row.t}</span>{row.pin && <span className="ml-auto text-[10px] font-semibold tracking-widest uppercase bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20 rounded-full px-1.5 py-0.5">Pinned</span>}</div>
+                  <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--sg-secondary))]">{row.m}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Resources */}
+      <section id="resources" className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="order-2 lg:order-1 rounded-xl border bg-[rgb(var(--sg-card))] p-4">
+            <div className="flex items-center justify-between"><p className="text-sm font-semibold">Resources</p><span className="text-xs rounded-full border px-2 py-1">Filter: All</span></div>
+            <div className="mt-3 grid sm:grid-cols-2 gap-3">
+              {[
+                {title:'Differential Equations Cheat Sheet', type:'PDF • 245 KB', by:'Alex • 2d ago'},
+                {title:'Khan Academy — Linear Algebra', type:'Link', by:'Taylor • yesterday'},
+                {title:'Problem Set Ch.5 Solutions', type:'PDF • 890 KB', by:'Jordan • 3d ago'},
+                {title:'Thermodynamics Practice Set', type:'PDF • 450 KB', by:'Casey • 5d ago'},
+              ].map(r=>(
+                <div key={r.title} className="rounded-lg border p-3">
+                  <p className="text-sm font-medium line-clamp-2 leading-tight">{r.title}</p>
+                  <p className="mt-1 text-xs text-[rgb(var(--sg-muted))]">{r.type} • {r.by}</p>
+                  <span className="mt-2 inline-flex text-xs border rounded-md px-1.5 py-0.5">Open</span>
+                </div>
+              ))}
             </div>
-            <div className="flex gap-3 shrink-0">
-              <Link href="/register"><Button variant="primary" size="lg">Find a Group</Button></Link>
-              <Link href="/groups"><Button variant="secondary" size="lg">Browse groups</Button></Link>
+          </div>
+          <div className="order-1 lg:order-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 text-xs font-medium"><BookOpen className="h-3.5 w-3.5" /> Resources</span>
+            <h3 className="mt-3 text-2xl font-semibold tracking-tight">Share once, benefit all semester.</h3>
+            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--sg-secondary))]">Upload notes, link videos or drop PDFs. Filter by subject, search instantly and keep the most useful material pinned for everyone.</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {['PDFs, links, docs and videos','Search + filters by subject and author','Upload with role-based access'].map(t=>(
+                <li key={t} className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center"><Check className="h-3.5 w-3.5 text-emerald-600" /></span>{t}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Progress */}
+      <section className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="rounded-2xl border bg-indigo-600 text-white p-6 sm:p-8 overflow-hidden relative">
+          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10" />
+          <div className="relative grid lg:grid-cols-2 gap-6 items-center">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-2.5 py-1 text-xs font-medium"><Zap className="h-3.5 w-3.5" /> Productivity</span>
+              <h3 className="mt-3 text-2xl font-semibold tracking-tight">Build consistency without busywork.</h3>
+              <p className="mt-2 text-sm leading-relaxed text-indigo-100">Track tasks, upcoming sessions and streaks. The dashboard makes progress obvious — motivation follows.</p>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-white text-indigo-700 px-3 py-2 font-medium"><GraduationCap className="h-4 w-4" /> 14-day streak</span>
+                <span className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/20 px-3 py-2">68% weekly goal</span>
+              </div>
+            </div>
+            <div className="rounded-xl bg-white text-zinc-900 p-4 shadow-large">
+              <p className="text-sm font-semibold">Tasks • Today</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  {t:'Review eigenvalues', s:'Mathematics', d:'Due tomorrow', done:true},
+                  {t:'Finish problem set Ch.5', s:'Mathematics', d:'Due in 2 days', done:false},
+                  {t:'Prepare thermo quiz notes', s:'Physics', d:'Due Friday', done:false},
+                ].map(item=>(
+                  <div key={item.t} className="flex items-center gap-3 rounded-lg border p-2.5">
+                    <span className={`h-5 w-5 rounded-md border flex items-center justify-center shrink-0 ${item.done?'bg-indigo-600 border-indigo-600 text-white':'bg-white'}`}>{item.done&&<Check className="h-3.5 w-3.5" />}</span>
+                    <div className="min-w-0"><p className="text-sm font-medium truncate">{item.t}</p><p className="text-xs text-zinc-500">{item.s} • {item.d}</p></div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="relative z-10 border-t border-white/[0.06] py-10 text-center">
-        <p className="text-sm text-white/45">&copy; {new Date().getFullYear()} SubCrack Study Group. Built for better study sessions.</p>
+      {/* Trust */}
+      <section className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-10">
+        <div className="rounded-2xl border bg-[rgb(var(--sg-card))] p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div><h3 className="text-lg font-semibold">Built for students, not enterprises.</h3><p className="mt-1 text-sm text-[rgb(var(--sg-secondary))] max-w-xl">Free to start, private by default and fast on every device. No ads, no distractions — just focused study.</p></div>
+            <div className="flex items-center gap-3">
+              <span className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">★</span>
+              <div><p className="text-sm font-semibold">4.9/5 student rating</p><p className="text-xs text-[rgb(var(--sg-muted))]">Based on core group features</p></div>
+            </div>
+          </div>
+          <div className="mt-6 grid sm:grid-cols-3 gap-4">
+            {[
+              {q:'Finally a study tool that doesn’t feel like homework.', a:'Aarav • BSc Mathematics'},
+              {q:'Our group actually meets now. The schedule + tasks keep us honest.', a:'Mira • Computer Science'},
+              {q:'Sharing resources is instant. No more hunting through chats.', a:'Ethan • Physics'},
+            ].map(card=>(
+              <div key={card.q} className="rounded-xl border bg-[rgb(var(--sg-surface-muted))] p-4 dark:bg-transparent">
+                <p className="text-sm leading-relaxed">“{card.q}”</p>
+                <p className="mt-3 text-xs font-medium text-[rgb(var(--sg-muted))]">{card.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="rounded-2xl border bg-[rgb(var(--sg-card))] p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div><h3 className="text-xl font-semibold tracking-tight">Ready to learn together?</h3><p className="mt-1 text-sm text-[rgb(var(--sg-secondary))]">Join a group in minutes. Bring your course, your goals and your curiosity.</p></div>
+          <div className="flex gap-3 shrink-0 w-full lg:w-auto">
+            <Link href="/register" className="flex-1 lg:flex-none btn btn-primary">Find a Group</Link>
+            <Link href="/groups" className="flex-1 lg:flex-none btn btn-secondary">Browse groups</Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t py-8">
+        <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[rgb(var(--sg-muted))]">
+          <span className="flex items-center gap-2"><span className="h-6 w-6 rounded-md bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">S</span> Study-Group © {new Date().getFullYear()}</span>
+          <span>Privacy • Terms • Contact • Status</span>
+        </div>
       </footer>
     </div>
   )

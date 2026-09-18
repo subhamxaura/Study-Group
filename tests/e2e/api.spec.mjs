@@ -455,6 +455,57 @@ async function main() {
     assert(afterOut.status === 401, 'session invalidated after logout', `status ${afterOut.status}`)
   }
 
+  section('Notes: version history, autosave-equivalent PUT, restore')
+  {
+    // Create a note in the group
+    const note = await A.post(`/api/notes?groupId=${globalThis.__groupId}`, {
+      title: 'E2E versioned note',
+      content: 'Version one content',
+      kind: 'LECTURE',
+      tags: ['e2e'],
+    })
+    const nid = note.body?.data?.note?.id
+    assert(note.status === 200 && nid, 'note creation works', `status ${note.status}`)
+
+    // Two successive edits → snapshot versions server-side
+    const edit1 = await B.put(`/api/notes/${nid}`, { title: 'E2E versioned note', content: 'Version two content', kind: 'LECTURE', tags: ['e2e'] })
+    assert(edit1.status === 200 && edit1.body?.data?.note?.version === 2, 'first edit bumps to version 2', `status ${edit1.status} v=${edit1.body?.data?.note?.version}`)
+    const edit2 = await A.put(`/api/notes/${nid}`, { title: 'E2E versioned note', content: 'Version three content', kind: 'LECTURE', tags: ['e2e'] })
+    assert(edit2.status === 200 && edit2.body?.data?.note?.version === 3, 'second edit bumps to version 3')
+
+    // History: exactly two snapshots (v1, v2), newest first
+    const history = await A.get(`/api/notes/${nid}?versions=1`)
+    const versions = history.body?.data?.versions ?? []
+    assert(history.status === 200 && versions.length === 2, 'version history returns 2 snapshots', `got ${versions.length}`)
+    assert(versions[0]?.version === 2 && versions[0]?.content === 'Version two content', 'newest snapshot is v2 with its own content')
+    assert(versions[0]?.editor?.name, 'snapshot records who edited')
+
+    // Member gating: outsider cannot read history
+    const outsiderHistory = await C.get(`/api/notes/${nid}?versions=1`)
+    assert(outsiderHistory.status === 401 || outsiderHistory.status === 403, 'note history blocked for non-members', `status ${outsiderHistory.status}`)
+
+    // Restore v2 → note content reverts but becomes v4; history grows to 3
+    const restore = await A.post(`/api/notes/${nid}`, { versionId: versions[0].id })
+    assert(restore.status === 200 && restore.body?.data?.note?.content === 'Version two content', 'restore applies the old content', `status ${restore.status}`)
+    assert(restore.body?.data?.note?.version === 4, 'restore creates a NEW version (4), history preserved')
+    const historyAfter = await A.get(`/api/notes/${nid}?versions=1`)
+    assert((historyAfter.body?.data?.versions ?? []).length === 3, 'history grows to 3 snapshots after restore')
+  }
+
+  section('Dashboard aggregate: today timeline shape')
+  {
+    const dash = await A.get('/api/dashboard')
+    assert(dash.status === 200 && dash.body?.ok, 'dashboard aggregate loads')
+    const timeline = dash.body?.data?.todayTimeline
+    assert(Array.isArray(timeline), 'todayTimeline is an array')
+    if (timeline.length > 0) {
+      const valid = timeline.every((i) => ['task', 'session', 'focus'].includes(i.kind))
+      assert(valid, 'every timeline item has a known kind', timeline.map((i) => i.kind).join(','))
+      const focus = timeline.find((i) => i.kind === 'focus')
+      if (focus) assert(typeof focus.recommendedMinutes === 'number' && focus.recommendedMinutes > 0, 'focus recommendation carries a positive duration')
+    }
+  }
+
   section('Security regressions: privacy-aware search, resource counter IDOR, upload key handling')
   {
     // Private profiles must never surface in people search

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { getProvider, isAIConfigured, STUDYMATE_SYSTEM_PROMPT } from '@/lib/ai/provider'
 import { aiChatSchema } from '@/lib/validation'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,9 @@ export const POST = withUser(async (user, req) => {
   if (!isAIConfigured()) {
     return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY to enable it.', 503)
   }
+  // Paid API per request — 20 messages / 5 min / user.
+  const rl = rateLimit(`ai:${user.id}`, 20, 5 * 60_000)
+  if (!rl.ok) return fail('You are sending messages too quickly. Give StudyMate a moment.', 429, { retryAfter: rl.retryAfter })
   const data = await parseBody(req, aiChatSchema)
   const provider = getProvider()
   if (!provider) return fail('AI provider unavailable', 503)

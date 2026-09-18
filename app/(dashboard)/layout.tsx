@@ -1,179 +1,307 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, Users, Compass, MessageCircle, Calendar, BookOpen, CheckSquare, Bell, Settings, LogOut, Menu, X, ChevronLeft, Search, Moon, Sun } from 'lucide-react'
-import { Button, Avatar } from '@/components/ui'
-import { useAuthStore, useUIStore } from '@/lib/store'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  LayoutDashboard, Users, Compass, MessageCircle, Calendar, BookOpen,
+  CheckSquare, Timer, BarChart3, Bell, Settings, LogOut, Menu, X, Search, Plus, BookMarked,
+} from 'lucide-react'
+import { Avatar, Button, Badge, ToastViewport } from '@/components/ui'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { CommandPalette } from '@/components/shell/CommandPalette'
+import { NotificationCenter } from '@/components/shell/NotificationCenter'
+import { StudymatePanel } from '@/components/studymate/StudymatePanel'
+import { useSession, useUIStore } from '@/lib/store'
+import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
+import type { GroupSummary } from '@/types'
+import dynamic from 'next/dynamic'
+
+const OnboardingWizardLazy = dynamic(
+  () => import('@/components/onboarding/OnboardingWizard').then((m) => m.OnboardingWizard),
+  { loading: () => (
+    <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--sg-background))]">
+      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+    </div>
+  ) },
+)
+
+const mainNav = [
+  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { label: 'My Groups', icon: Users, href: '/groups' },
+  { label: 'Discover', icon: Compass, href: '/discover' },
+  { label: 'Messages', icon: MessageCircle, href: '/messages' },
+  { label: 'Calendar', icon: Calendar, href: '/calendar' },
+  { label: 'Tasks', icon: CheckSquare, href: '/tasks' },
+  { label: 'Resources', icon: BookOpen, href: '/resources' },
+  { label: 'Focus', icon: Timer, href: '/focus' },
+  { label: 'Analytics', icon: BarChart3, href: '/analytics' },
+]
+
+const mobileNav = [
+  { label: 'Home', icon: LayoutDashboard, href: '/dashboard' },
+  { label: 'Groups', icon: Users, href: '/groups' },
+  { label: 'Focus', icon: Timer, href: '/focus' },
+  { label: 'Messages', icon: MessageCircle, href: '/messages' },
+  { label: 'Profile', icon: Avatar, href: '/profile' },
+]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const params = useParams()
-  const groupId = params.id as string
-  const { user, isLoading, clearAuth } = useAuthStore()
-  const { theme, setTheme } = useUIStore()
+  const { user, isLoading, init, logout } = useSession()
+  const { theme, sidebarCollapsed, setSidebarCollapsed, setCommandOpen } = useUIStore()
 
-  const mainNav = [
-    { label: 'Dashboard', icon: LayoutDashboard, href: '/groups' },
-    { label: 'My Groups', icon: Users, href: '/groups' },
-    { label: 'Discover', icon: Compass, href: '/groups' },
-    { label: 'Messages', icon: MessageCircle, href: groupId ? `/groups/${groupId}/chat` : '/groups', badge: 3 },
-    { label: 'Resources', icon: BookOpen, href: groupId ? `/groups/${groupId}/resources` : '/groups' },
-    { label: 'Tasks', icon: CheckSquare, href: groupId ? `/groups/${groupId}/calendar` : '/groups' },
-  ]
-  const groupNav = groupId ? [
-    { label: 'Overview', icon: LayoutDashboard, href: `/groups/${groupId}` },
-    { label: 'Discussion', icon: MessageCircle, href: `/groups/${groupId}/chat` },
-    { label: 'Resources', icon: BookOpen, href: `/groups/${groupId}/resources` },
-    { label: 'Schedule', icon: Calendar, href: `/groups/${groupId}/calendar` },
-    { label: 'Members', icon: Users, href: `/groups/${groupId}/members` },
-    { label: 'Settings', icon: Settings, href: `/groups/${groupId}/settings` },
-  ] : []
-
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  useEffect(()=> setMounted(true), [])
-  useEffect(()=>{ if(mounted && !isLoading && !user) router.push('/login') }, [mounted,isLoading,user,router])
+  const [myGroups, setMyGroups] = useState<GroupSummary[]>([])
+  const [notifCount, setNotifCount] = useState(0)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
-  if (!mounted || isLoading) {
+  useEffect(() => { init() }, [init])
+
+  // First-time onboarding gate (checked once per session after auth resolves)
+  useEffect(() => {
+    if (!user || needsOnboarding) return
+    api.get<{ completed: boolean }>('/api/onboarding')
+      .then((d) => { if (!d.completed) setNeedsOnboarding(true) })
+      .catch(() => { /* fail open — onboarding is not worth blocking the app */ })
+  }, [user, needsOnboarding])
+
+  // Close mobile drawer on navigation
+  useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  // Load sidebar groups + unread count (light payload)
+  useEffect(() => {
+    if (!user) return
+    let alive = true
+    api.get<{ groups: GroupSummary[] }>('/api/groups?mine=1&pageSize=12')
+      .then((d) => { if (alive) setMyGroups(d.groups) })
+      .catch(() => {})
+    api.get<{ unreadCount: number }>('/api/notifications?pageSize=1')
+      .then((d) => { if (alive) setNotifCount(d.unreadCount) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [user, pathname])
+
+  // Global shortcuts: Cmd/Ctrl-K palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [setCommandOpen])
+
+  const handleLogout = useCallback(async () => {
+    await logout()
+    router.push('/login')
+    router.refresh()
+  }, [logout, router])
+
+  if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[rgb(var(--sg-background))]">
+      <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--sg-background))]">
         <div className="text-center">
-          <div className="h-10 w-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-3 text-sm text-[rgb(var(--sg-muted))]">Loading workspace…</p>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <p className="mt-3 text-sm text-muted">Loading workspace…</p>
         </div>
       </div>
     )
   }
-  if (!user) return null
 
-  const handleLogout = () => { clearAuth(); router.push('/login') }
-  const isActive = (href: string) => pathname === href || (href !== '/groups' && pathname.startsWith(href))
+  // Block the workspace behind the one-time wizard (full-screen)
+  if (needsOnboarding) {
+    return <OnboardingWizardLazy onFinished={() => setNeedsOnboarding(false)} />
+  }
+
+  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+
+  const sidebar = (
+    <div className="flex h-full flex-col">
+      <div className="flex h-[60px] shrink-0 items-center justify-between border-b px-3">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">S</span>
+          {!sidebarCollapsed && <span className="text-sm font-semibold">Study-Group</span>}
+        </Link>
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="hidden rounded-md p-1.5 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] lg:block"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <PanelLeft className={cn('h-4 w-4 transition-transform', sidebarCollapsed && 'rotate-180')} />
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+        <nav className="space-y-0.5" aria-label="Primary">
+          {mainNav.map((item) => (
+            <Link
+              key={item.label} href={item.href}
+              className={cn('nav-item', isActive(item.href) ? 'nav-item-active' : 'nav-item-inactive')}
+              title={sidebarCollapsed ? item.label : undefined}
+            >
+              <item.icon className="h-[18px] w-[18px] shrink-0" />
+              {!sidebarCollapsed && <span>{item.label}</span>}
+            </Link>
+          ))}
+        </nav>
+
+        {!sidebarCollapsed && myGroups.length > 0 && (
+          <div className="border-t pt-3">
+            <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">My groups</p>
+            <div className="space-y-0.5">
+              {myGroups.slice(0, 6).map((g) => (
+                <Link
+                  key={g.id} href={`/groups/${g.id}`}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors',
+                    pathname.startsWith(`/groups/${g.id}`) ? 'nav-item-active' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]'
+                  )}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-[10px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                    {g.name[0]}
+                  </span>
+                  <span className="truncate">{g.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="shrink-0 space-y-0.5 border-t px-2 py-2">
+        <Link href="/profile" className={cn('nav-item', isActive('/profile') ? 'nav-item-active' : 'nav-item-inactive')} title="Profile">
+          <Avatar name={user.name} src={user.avatarUrl} size="xs" />
+          {!sidebarCollapsed && <span className="truncate text-sm">Profile</span>}
+        </Link>
+        <Link href="/settings" className={cn('nav-item', isActive('/settings') ? 'nav-item-active' : 'nav-item-inactive')}>
+          <Settings className="h-[18px] w-[18px]" />
+          {!sidebarCollapsed && <span>Settings</span>}
+        </Link>
+        <button onClick={handleLogout} className="nav-item nav-item-inactive w-full">
+          <LogOut className="h-[18px] w-[18px]" />
+          {!sidebarCollapsed && <span>Sign out</span>}
+        </button>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--sg-background))] flex">
+    <div className="flex min-h-screen bg-[rgb(var(--sg-background))]">
       {/* Desktop sidebar */}
-      <motion.aside initial={false} animate={{ width: sidebarOpen ? 256 : 72 }} transition={{ duration: 0.22, ease: [0.4,0,0.2,1] }}
-        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 border-r bg-[rgb(var(--sg-card))]">
-        <div className="flex items-center justify-between h-[64px] px-3 border-b shrink-0">
-          <AnimatePresence mode="wait">
-            {sidebarOpen ? (
-              <motion.div key="full" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex items-center gap-2.5">
-                <span className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">S</span>
-                <span className="text-sm font-semibold">Study-Group</span>
-              </motion.div>
-            ) : (
-              <motion.span key="mini" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="mx-auto h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">S</motion.span>
-            )}
-          </AnimatePresence>
-          <button onClick={()=> setSidebarOpen(!sidebarOpen)} className="hidden lg:flex p-1.5 rounded-md hover:bg-[rgb(var(--sg-hover))] text-[rgb(var(--sg-muted))]"><ChevronLeft className={cn('h-4 w-4 transition-transform', !sidebarOpen && 'rotate-180')} /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
-          <nav className="space-y-1">
-            {mainNav.map(item=>(
-              <Link key={item.label} href={item.href} className={cn('flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isActive(item.href) ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20' : 'text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))]')}>
-                <item.icon className="h-[18px] w-[18px] shrink-0" />
-                {sidebarOpen && <><span className="flex-1 truncate">{item.label}</span>{(item as any).badge && <span className="ml-auto text-xs bg-indigo-600 text-white rounded-full px-1.5 py-0.5">{(item as any).badge}</span>}</>}
-              </Link>
-            ))}
-          </nav>
-
-          {groupId && sidebarOpen && (
-            <div>
-              <p className="px-2.5 mb-2 text-[11px] font-semibold tracking-widest text-[rgb(var(--sg-muted))] uppercase">Current group</p>
-              <nav className="space-y-1">
-                {groupNav.map(item=>(
-                  <Link key={item.href} href={item.href} className={cn('flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors', isActive(item.href) ? 'bg-[rgb(var(--sg-hover))] text-[rgb(var(--sg-foreground))] font-medium' : 'text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))]')}>
-                    <item.icon className="h-4 w-4" /> {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-          )}
-        </div>
-
-        <div className="border-t p-2 space-y-2 shrink-0">
-          <button onClick={()=> setTheme(theme==='dark'?'light':'dark')} className="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))]"><span className="h-8 w-8 rounded-lg bg-[rgb(var(--sg-hover))] flex items-center justify-center">{theme==='dark'?<Sun className="h-4 w-4"/>:<Moon className="h-4 w-4"/>}</span>{sidebarOpen && <span className="text-sm">{theme==='dark'?'Light mode':'Dark mode'}</span>}</button>
-          <button onClick={handleLogout} className="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm text-[rgb(var(--sg-secondary))] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"><LogOut className="h-4 w-4" />{sidebarOpen && 'Sign out'}</button>
-          {sidebarOpen && (
-            <div className="flex items-center gap-2.5 rounded-lg border p-2.5 bg-[rgb(var(--sg-surface-muted))]">
-              <Avatar name={user.name} src={user.avatar} size="md" status="online" />
-              <div className="min-w-0 flex-1"><p className="text-sm font-medium truncate leading-none">{user.name}</p><p className="text-xs text-[rgb(var(--sg-muted))] truncate">{user.email}</p></div>
-              <span className="h-2 w-2 rounded-full bg-emerald-500" title="Online" />
-            </div>
-          )}
-        </div>
-      </motion.aside>
-
-      {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-[56px] border-b bg-[rgb(var(--sg-card))] flex items-center justify-between px-3">
-        <div className="flex items-center gap-2">
-          <button onClick={()=> setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-[rgb(var(--sg-hover))]"><Menu className="h-5 w-5" /></button>
-          <span className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">S</span>
-          <span className="text-sm font-semibold">Study-Group</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Link href="/groups" className="p-2 rounded-lg hover:bg-[rgb(var(--sg-hover))]"><Search className="h-5 w-5 text-[rgb(var(--sg-muted))]" /></Link>
-          <Avatar name={user.name} src={user.avatar} size="sm" />
-        </div>
-      </div>
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-card))] transition-all duration-200 lg:flex',
+          sidebarCollapsed ? 'w-[68px]' : 'w-60'
+        )}
+      >
+        {sidebar}
+      </aside>
 
       {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={()=> setMobileOpen(false)} />
-            <motion.aside initial={{x:-280}} animate={{x:0}} exit={{x:-280}} transition={{type:'spring', damping:24, stiffness:260}} className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-[rgb(var(--sg-card))] border-r flex flex-col">
-              <div className="h-[56px] flex items-center justify-between px-4 border-b">
-                <span className="flex items-center gap-2 font-semibold"><span className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">S</span> Study-Group</span>
-                <button onClick={()=> setMobileOpen(false)} className="p-2 rounded-lg hover:bg-[rgb(var(--sg-hover))]"><X className="h-5 w-5" /></button>
-              </div>
-              <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {mainNav.map(item=>(
-                  <Link key={item.label} href={item.href} onClick={()=> setMobileOpen(false)} className={cn('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm', isActive(item.href)?'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300':'text-[rgb(var(--sg-secondary))]')}>
-                    <item.icon className="h-5 w-5" />{item.label}
-                  </Link>
-                ))}
-                {groupId && <div className="pt-4 border-t mt-3"><p className="text-[11px] font-semibold tracking-widest text-[rgb(var(--sg-muted))] uppercase px-3 mb-2">Current group</p>{groupNav.map(i=>(<Link key={i.href} href={i.href} onClick={()=> setMobileOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[rgb(var(--sg-secondary))]"><i.icon className="h-4 w-4" />{i.label}</Link>))}</div>}
-              </nav>
-              <div className="p-3 border-t space-y-2">
-                <div className="flex items-center gap-3">
-                  <Avatar name={user.name} src={user.avatar} size="md" status="online" />
-                  <div className="min-w-0"><p className="text-sm font-medium truncate">{user.name}</p><p className="text-xs text-[rgb(var(--sg-muted))] truncate">{user.email}</p></div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={()=> setTheme(theme==='dark'?'light':'dark')} className="w-full justify-start"><Sun className="h-4 w-4" /> {theme==='dark'?'Light mode':'Dark mode'}</Button>
-                <Button variant="danger" size="sm" onClick={handleLogout} className="w-full">Sign out</Button>
-              </div>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-[rgb(var(--sg-card))] lg:hidden"
+            >
+              {sidebar}
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* Content */}
-      <main className={cn('flex-1 min-w-0', sidebarOpen ? 'lg:ml-[256px]' : 'lg:ml-[72px]', 'pt-[56px] lg:pt-0')}>
-        {/* Top bar for desktop search */}
-        <div className="hidden lg:flex h-[64px] items-center justify-between border-b bg-[rgb(var(--sg-card))] px-6 gap-4 sticky top-0 z-20">
-          <div className="flex-1 max-w-xl">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[rgb(var(--sg-muted))]" />
-              <input placeholder="Search groups, resources, people…" className="w-full rounded-lg border bg-[rgb(var(--sg-surface-muted))] pl-9 pr-3 py-2 text-sm placeholder:text-[rgb(var(--sg-muted))] focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20" />
+      {/* Main column */}
+      <div className={cn('flex min-h-screen w-full flex-col transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-60')}>
+        {/* Topbar */}
+        <header className="sticky top-0 z-20 border-b bg-[rgb(var(--sg-card))]/90 backdrop-blur">
+          <div className="flex h-[60px] items-center justify-between gap-3 px-4 pb-[env(safe-area-inset-bottom)] sm:px-6">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-muted hover:bg-[rgb(var(--sg-hover))] lg:hidden" aria-label="Open menu">
+                <Menu className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setCommandOpen(true)}
+                className="hidden items-center gap-2 rounded-lg border bg-[rgb(var(--sg-background))] px-3 py-2 text-sm text-muted transition-colors hover:border-[rgb(var(--sg-accent))]/40 md:flex"
+              >
+                <Search className="h-4 w-4" />
+                <span>Search…</span>
+                <kbd className="ml-4 rounded bg-[rgb(var(--sg-hover))] px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Link href="/groups?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
+                <Plus className="h-4 w-4" /> Create group
+              </Link>
+              <NotificationCenter trigger={(
+                <button className="relative rounded-lg p-2 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))]" aria-label={`Notifications (${notifCount} unread)`}>
+                  <Bell className="h-[18px] w-[18px]" />
+                  {notifCount > 0 && (
+                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {notifCount > 9 ? '9+' : notifCount}
+                    </span>
+                  )}
+                </button>
+              )} onCountChange={setNotifCount} />
+              <ThemeToggle />
+              <Link
+                href="/profile"
+                className="ml-1 rounded-full ring-offset-2 transition-shadow hover:ring-2 hover:ring-[rgb(var(--sg-accent))]/30"
+                aria-label="Your profile"
+              >
+                <Avatar name={user.name} src={user.avatarUrl} size="sm" />
+              </Link>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="relative p-2 rounded-lg hover:bg-[rgb(var(--sg-hover))] border"><Bell className="h-5 w-5 text-[rgb(var(--sg-muted))]" /><span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-[rgb(var(--sg-card))]" /></button>
-            <div className="h-6 w-px bg-[rgb(var(--sg-border))]" />
-            <Avatar name={user.name} src={user.avatar} size="sm" status="online" />
-          </div>
+        </header>
+
+        <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-[rgb(var(--sg-card))] lg:hidden" aria-label="Mobile">
+        <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around px-2">
+          {mobileNav.map((item) => {
+            const active = isActive(item.href)
+            return (
+              <Link
+                key={item.label} href={item.href}
+                className={cn(
+                  'flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition-colors',
+                  active ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted'
+                )}
+              >
+                {item.label === 'Profile'
+                  ? <Avatar name={user.name} src={user.avatarUrl} size="xs" className={cn(!active && 'opacity-60')} />
+                  : <item.icon className="h-5 w-5" />}
+                {item.label}
+              </Link>
+            )
+          })}
         </div>
-        <div className="min-h-[calc(100vh-64px)]">
-          {children}
-        </div>
-      </main>
+      </nav>
+
+      <CommandPalette />
+      <StudymatePanel />
+      <ToastViewport />
     </div>
+  )
+}
+
+function PanelLeft({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+    </svg>
   )
 }

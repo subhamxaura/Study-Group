@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: studygroup-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: studygroup
+      POSTGRES_DB: studygroup
+    ports:
+      - "5432:5432"
+    volumes:
+      - studygroup_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d studygroup"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  studygroup_pgdata:

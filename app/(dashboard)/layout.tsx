@@ -27,18 +27,43 @@ const OnboardingWizardLazy = dynamic(
   ) },
 )
 
-const mainNav = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { label: 'My Groups', icon: Users, href: '/groups' },
-  { label: 'Discover', icon: Compass, href: '/discover' },
-  { label: 'Messages', icon: MessageCircle, href: '/messages' },
-  { label: 'Calendar', icon: Calendar, href: '/calendar' },
-  { label: 'Tasks', icon: CheckSquare, href: '/tasks' },
-  { label: 'Resources', icon: BookOpen, href: '/resources' },
-  { label: 'Focus', icon: Timer, href: '/focus' },
-  { label: 'Analytics', icon: BarChart3, href: '/analytics' },
+// Grouped command-center navigation. Badges are computed from real state,
+// never hardcoded — sections render only when they have entries.
+const navSections: Array<{ label: string; items: Array<{ label: string; icon: React.ComponentType<{ className?: string }>; href: string; badge?: 'overdue' | 'nextSession' }> }> = [
+  {
+    label: 'Home',
+    items: [{ label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }],
+  },
+  {
+    label: 'Study',
+    items: [
+      { label: 'Focus', icon: Timer, href: '/focus' },
+      { label: 'Calendar', icon: Calendar, href: '/calendar', badge: 'nextSession' },
+      { label: 'Tasks', icon: CheckSquare, href: '/tasks', badge: 'overdue' },
+    ],
+  },
+  {
+    label: 'Collaborate',
+    items: [
+      { label: 'Discover', icon: Compass, href: '/discover' },
+      { label: 'Messages', icon: MessageCircle, href: '/messages' },
+      { label: 'Groups', icon: Users, href: '/groups' },
+    ],
+  },
+  {
+    label: 'Library',
+    items: [
+      { label: 'Resources', icon: BookOpen, href: '/resources' },
+      { label: 'Notes', icon: BookMarked, href: '/notes' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [{ label: 'Analytics', icon: BarChart3, href: '/analytics' }],
+  },
 ]
 
+// Notes is a group-scoped feature: /notes index routes into the user's groups.
 const mobileNav = [
   { label: 'Home', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Groups', icon: Users, href: '/groups' },
@@ -56,6 +81,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(false)
   const [myGroups, setMyGroups] = useState<GroupSummary[]>([])
   const [notifCount, setNotifCount] = useState(0)
+  const [overdueCount, setOverdueCount] = useState(0)
+  const [nextSession, setNextSession] = useState<{ id: string; startsAt: string } | null>(null)
+  // Contextual sidebar badges: overdue task count and "today" session dot.
+  const badgeState = {
+    overdue: overdueCount,
+    nextSession:
+      nextSession && new Date(nextSession.startsAt).toDateString() === new Date().toDateString()
+        ? 'today'
+        : null,
+  } as { overdue: number; nextSession: string | null }
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => { init() }, [init])
@@ -80,6 +115,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => {})
     api.get<{ unreadCount: number }>('/api/notifications?pageSize=1')
       .then((d) => { if (alive) setNotifCount(d.unreadCount) })
+      .catch(() => {})
+    // Contextual nav badges — real data, refreshed per navigation (tiny payloads)
+    api.get<{ tasks: Array<{ id: string }> }>('/api/tasks?scope=mine&due=overdue&pageSize=1')
+      .then((d) => { if (alive) setOverdueCount(d.tasks.length) })
+      .catch(() => {})
+    api.get<{ sessions: Array<{ id: string; startsAt: string }> }>('/api/sessions?limit=1')
+      .then((d) => { setNextSession(d.sessions[0] ?? null) })
       .catch(() => {})
     return () => { alive = false }
   }, [user, pathname])
@@ -137,16 +179,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
-        <nav className="space-y-0.5" aria-label="Primary">
-          {mainNav.map((item) => (
-            <Link
-              key={item.label} href={item.href}
-              className={cn('nav-item', isActive(item.href) ? 'nav-item-active' : 'nav-item-inactive')}
-              title={sidebarCollapsed ? item.label : undefined}
-            >
-              <item.icon className="h-[18px] w-[18px] shrink-0" />
-              {!sidebarCollapsed && <span>{item.label}</span>}
-            </Link>
+        <nav className="space-y-3" aria-label="Primary">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              {!sidebarCollapsed && (
+                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">{section.label}</p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const badgeValue = item.badge === 'overdue' ? badgeState.overdue : item.badge === 'nextSession' ? badgeState.nextSession : null
+                  return (
+                    <Link
+                      key={item.label} href={item.href}
+                      className={cn('nav-item', isActive(item.href) ? 'nav-item-active' : 'nav-item-inactive')}
+                      title={sidebarCollapsed ? item.label : undefined}
+                    >
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                      {!sidebarCollapsed && badgeValue !== null && (
+                        <span
+                          className={cn(
+                            'ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                            item.badge === 'overdue' ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+                          )}
+                        >
+                          {badgeValue}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
           ))}
         </nav>
 

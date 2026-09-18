@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, Clock, Users, Calendar, CheckSquare, Flame, BookOpen, Pencil } from 'lucide-react'
 import { Avatar, Badge, Button, Input, Modal, Textarea } from '@/components/ui'
@@ -20,6 +21,8 @@ interface ProfileData {
 
 export default function ProfilePage() {
   const { user } = useSession()
+  const searchParams = useSearchParams()
+  const viewUserId = searchParams.get('userId')
   const [data, setData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
@@ -28,7 +31,9 @@ export default function ProfilePage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    api.get<ProfileData>('/api/profile')
+    // ?userId=<id> views another member's profile (privacy enforced server-side);
+    // without it, the viewer's own profile loads.
+    api.get<ProfileData>(viewUserId ? `/api/profile?userId=${viewUserId}` : '/api/profile')
       .then((d) => {
         setData(d)
         setForm({
@@ -42,9 +47,9 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [viewUserId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, viewUserId])
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()

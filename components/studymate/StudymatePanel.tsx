@@ -6,16 +6,97 @@ import { api } from '@/lib/client'
 import { useUIStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
-interface Msg { role: 'user' | 'assistant'; content: string }
+interface Msg { role: 'user' | 'assistant'; content: string; quiz?: QuizQuestion[]; quizResult?: string }
+
+const QUIZ_FORMAT = 'Create 5 multiple-choice quiz questions about the topic below. Use exactly this format:\nQ1. question\nA) option\nB) option\nC) option\nD) option\nAnswer: B\n(repeat for Q1-Q5)\n\nTopic: '
 
 const QUICK_ACTIONS = [
   { label: 'Explain a concept', prompt: 'Explain this concept in simple terms with an example: ' },
-  { label: 'Quiz me', prompt: 'Create 5 quiz questions (with answers) about: ' },
+  { label: 'Quiz me', prompt: QUIZ_FORMAT },
   { label: 'Summarize notes', prompt: 'Summarize the following notes into tight bullet points:\n\n' },
   { label: 'Make flashcards', prompt: 'Create flashcards (Q/A pairs) from this material:\n\n' },
   { label: 'Practice questions', prompt: 'Generate practice questions of increasing difficulty about: ' },
   { label: 'Study plan', prompt: 'Create a 7-day study plan for: ' },
 ]
+
+// Parse the AI's quiz format into an interactive MCQ set.
+// Expected format (requested in the prompt):
+//   Q1. question text
+//   A) option   B) option   C) option   D) option
+//   Answer: B
+export interface QuizQuestion { question: string; options: string[]; correctIndex: number }
+export function parseQuiz(text: string): QuizQuestion[] {
+  const questions: QuizQuestion[] = []
+  const blocks = text.split(/(?=\bQ\d+[.)])/g)
+  for (const block of blocks) {
+    const qLine = /Q\d+[.)]\s*(.+)/.exec(block)
+    if (!qLine) continue
+    const options = [...block.matchAll(/^\s*([A-D])[).]\s*(.+)$/gm)].map((m) => m[2].trim())
+    const ansLine = /Answer:\s*([A-D])/i.exec(block)
+    if (!qLine[1].trim() || options.length < 2 || !ansLine) continue
+    const correctIndex = ansLine[1].toUpperCase().charCodeAt(0) - 65
+    if (correctIndex >= options.length) continue
+    questions.push({ question: qLine[1].trim(), options, correctIndex })
+  }
+  return questions
+}
+
+function QuizCard({ quiz, onDone }: { quiz: QuizQuestion[]; onDone: (correct: number, total: number) => void }) {
+  const [idx, setIdx] = useState(0)
+  const [picked, setPicked] = useState<number | null>(null)
+  const [correct, setCorrect] = useState(0)
+  const finished = idx >= quiz.length
+  const q = quiz[idx]
+
+  useEffect(() => {
+    if (finished) onDone(correct, quiz.length)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished])
+
+  if (finished) {
+    return (
+      <div className="rounded-xl border bg-[rgb(var(--sg-surface-muted))] p-3" role="status">
+        <p className="text-sm font-semibold">Quiz complete — {correct}/{quiz.length} correct</p>
+        <p className="mt-1 text-xs text-secondary">
+          {correct === quiz.length ? 'Perfect — you know this material.' : 'Review the questions you missed and try another quiz.'}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border bg-[rgb(var(--sg-surface-muted))] p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Question {idx + 1} of {quiz.length}</p>
+      <p className="mt-1.5 text-sm font-medium">{q.question}</p>
+      <div className="mt-2 space-y-1.5">
+        {q.options.map((opt, oi) => {
+          const isPicked = picked === oi
+          const isCorrect = oi === q.correctIndex
+          return (
+            <button
+              key={oi}
+              disabled={picked !== null}
+              onClick={() => {
+                setPicked(oi)
+                if (oi === q.correctIndex) setCorrect((c) => c + 1)
+                setTimeout(() => { setPicked(null); setIdx((i) => i + 1) }, 900)
+              }}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition-colors',
+                picked === null && 'hover:border-[rgb(var(--sg-accent))]/40 hover:bg-[rgb(var(--sg-hover))]',
+                picked !== null && isCorrect && 'border-emerald-500 bg-emerald-500/10',
+                picked !== null && isPicked && !isCorrect && 'border-red-500 bg-red-500/10',
+                picked !== null && !isPicked && !isCorrect && 'opacity-60',
+              )}
+            >
+              <span className="font-semibold">{'ABCD'[oi]}</span> {opt}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 export function StudymatePanel() {
   const { studymateOpen, setStudymateOpen } = useUIStore()
@@ -49,7 +130,11 @@ export function StudymatePanel() {
         message: trimmed,
       })
       setConversationId(d.conversationId)
-      setMessages((m) => [...m, { role: 'assistant', content: d.reply }])
+      // If the exchange was a quiz request and the reply parses, attach the
+      // interactive set — scoring happens client-side and is recorded on screen.
+      const askedQuiz = /^Create 5 multiple-choice quiz questions/.test(trimmed)
+      const quiz = askedQuiz ? parseQuiz(d.reply) : []
+      setMessages((m) => [...m, { role: 'assistant', content: d.reply, quiz: quiz.length >= 2 ? quiz : undefined }])
     } catch (err) {
       setMessages((m) => [...m, {
         role: 'assistant',
@@ -134,6 +219,24 @@ export function StudymatePanel() {
                         )}
                       >
                         {m.content}
+                        {/* Interactive quiz rendered from the assistant's structured reply */}
+                        {m.role === 'assistant' && m.quiz && m.quiz.length > 0 && (
+                          <div className="mt-2">
+                            <QuizCard
+                              quiz={m.quiz}
+                              onDone={(correct, total) => {
+                                setMessages((ms) => {
+                                  const next = [...ms]
+                                  next[i] = { ...next[i], quiz: undefined, quizResult: `${correct}/${total}` }
+                                  return next
+                                })
+                              }}
+                            />
+                          </div>
+                        )}
+                        {m.role === 'assistant' && m.quizResult && (
+                          <p className="mt-1 text-[10px] text-muted" aria-live="polite">Scored {m.quizResult} on this quiz.</p>
+                        )}
                       </div>
                     </div>
                   ))}

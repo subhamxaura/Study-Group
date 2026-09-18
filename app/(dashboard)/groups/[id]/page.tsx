@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -605,6 +605,11 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ title: '', content: '', kind: 'LECTURE', tags: '' })
   const [saving, setSaving] = useState(false)
+  const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [versionsOpen, setVersionsOpen] = useState(false)
+  const [noteVersions, setNoteVersions] = useState<Array<{ id: string; version: number; title: string; content: string; kind: string; tags: string[]; createdAt: string; editor: { id: string; name: string } }> | null>(null)
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedRef = useRef('')
 
   const load = useCallback(() => {
     setLoading(true)
@@ -615,8 +620,6 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
   }, [groupId])
 
   useEffect(() => { if (isMember) load() }, [isMember, load])
-
-  if (!isMember) return <EmptyState icon={FileText} title="Members only" description="Join the group to see its notes." />
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -634,19 +637,78 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
     }
   }
 
+  const loadVersions = useCallback(async (noteId: string) => {
+    setNoteVersions(null)
+    try {
+      const d = await api.get<{ versions: Array<{ id: string; version: number; title: string; content: string; kind: string; tags: string[]; createdAt: string; editor: { id: string; name: string } }> }>(`/api/notes/${noteId}?versions=1`)
+      setNoteVersions(d.versions)
+    } catch {
+      setNoteVersions([])
+    }
+  }, [])
+
   const saveEdit = async () => {
     if (!activeNote) return
     setSaving(true)
     try {
-      await api.put(`/api/notes/${activeNote.id}`, {
+      const d = await api.put<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, {
         title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags,
       })
+      lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
+      setActiveNote(d.note)
+      setNoteSaveState('saved')
       load()
-      setActiveNote(null)
     } finally {
       setSaving(false)
     }
   }
+
+  // Debounced autosave: 1.5s after the last keystroke, only when content
+  // actually changed. Creates a version server-side (same PUT path).
+  useEffect(() => {
+    if (!activeNote || !versionsOpen) {
+      // editor closed elsewhere — nothing to autosave
+    }
+    if (!activeNote) return
+    const snapshot = `${activeNote.title}\u0000${activeNote.content}`
+    if (snapshot === lastSavedRef.current) return
+    setNoteSaveState('idle')
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(async () => {
+      setNoteSaveState('saving')
+      try {
+        const d = await api.put<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, {
+          title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags,
+        })
+        lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
+        setActiveNote(d.note)
+        setNoteSaveState('saved')
+        load()
+        if (versionsOpen) loadVersions(d.note.id)
+      } catch {
+        setNoteSaveState('idle')
+      }
+    }, 1500)
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current) }
+  }, [activeNote, versionsOpen, load, loadVersions])
+
+  // Restore applies an old version as a NEW version — history is never rewritten.
+  const restoreVersion = async (versionId: string) => {
+    if (!activeNote) return
+    try {
+      const d = await api.post<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, { versionId })
+      lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
+      setActiveNote(d.note)
+      setNoteSaveState('saved')
+      load()
+      loadVersions(d.note.id)
+    } catch {
+      /* restore failures are surfaced by the API envelope */
+    }
+  }
+
+  // Hooks above run unconditionally; the members-only gate renders after.
+  if (!isMember) return <EmptyState icon={FileText} title="Members only" description="Join the group to see its notes." />
 
   return (
     <div>
@@ -687,12 +749,39 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
               aria-label="Note content"
             />
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted">Version {activeNote.version} · every save creates a new version</p>
+              <p className="text-xs text-muted" aria-live="polite">
+                {noteSaveState === 'saving' ? 'Saving…' : noteSaveState === 'saved' ? `Saved · version ${activeNote.version}` : `Version ${activeNote.version} · autosaves`}
+              </p>
               <div className="flex gap-2">
-                <button onClick={() => setActiveNote(null)} className="btn btn-ghost btn-sm">Cancel</button>
+                <button onClick={() => setVersionsOpen((v) => !v)} className="btn btn-ghost btn-sm" aria-expanded={versionsOpen}>
+                  History
+                </button>
                 <Button onClick={saveEdit} isLoading={saving} size="sm">Save version</Button>
               </div>
             </div>
+            {versionsOpen && (
+              <div className="max-h-44 space-y-1.5 overflow-y-auto rounded-lg border p-2" role="list" aria-label="Version history">
+                {noteVersions === null ? (
+                  <p className="p-2 text-xs text-muted">Loading history…</p>
+                ) : noteVersions.length === 0 ? (
+                  <p className="p-2 text-xs text-muted">No earlier versions yet — history appears after the first edit.</p>
+                ) : (
+                  noteVersions.map((v) => (
+                    <div key={v.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-[rgb(var(--sg-hover))]" role="listitem">
+                      <span className="font-semibold">v{v.version}</span>
+                      <span className="min-w-0 flex-1 truncate text-muted">{v.title} · {v.editor.name} · {new Date(v.createdAt).toLocaleString()}</span>
+                      <button
+                        onClick={() => restoreVersion(v.id)}
+                        className="shrink-0 font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                        aria-label={`Restore version ${v.version}`}
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>

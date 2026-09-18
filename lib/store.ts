@@ -1,226 +1,152 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { User, Group, Message, Event, Resource, GroupMember } from '@/types'
+import { api } from '@/lib/client'
+import type { SafeUser, ChatMessage } from '@/types'
 
-interface AuthState {
-  user: User | null
-  token: string | null
+// ---------- session ----------
+
+interface SessionState {
+  user: SafeUser | null
   isLoading: boolean
-  setAuth: (user: User, token: string) => void
-  clearAuth: () => void
-  setLoading: (loading: boolean) => void
+  initialized: boolean
+  setUser: (user: SafeUser | null) => void
+  logout: () => Promise<void>
+  init: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      isLoading: true,
-      setAuth: (user, token) => set({ user, token, isLoading: false }),
-      clearAuth: () => set({ user: null, token: null, isLoading: false }),
-      setLoading: (loading) => set({ isLoading: loading }),
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token }),
+export const useSession = create<SessionState>((set) => ({
+  user: null,
+  isLoading: true,
+  initialized: false,
+  setUser: (user) => set({ user, isLoading: false, initialized: true }),
+  logout: async () => {
+    try { await api.post('/api/auth/logout') } catch { /* cookie already gone */ }
+    set({ user: null })
+  },
+  init: async () => {
+    try {
+      const { user } = await api.get<{ user: SafeUser | null }>('/api/auth/me')
+      set({ user, isLoading: false, initialized: true })
+    } catch {
+      set({ user: null, isLoading: false, initialized: true })
     }
-  )
-)
+  },
+}))
 
-interface GroupState {
-  groups: Group[]
-  currentGroup: Group | null
-  members: GroupMember[]
-  isLoading: boolean
-  setGroups: (groups: Group[]) => void
-  addGroup: (group: Group) => void
-  updateGroup: (group: Group) => void
-  removeGroup: (groupId: string) => void
-  setCurrentGroup: (group: Group | null) => void
-  setMembers: (members: GroupMember[]) => void
-  addMember: (member: GroupMember) => void
-  removeMember: (userId: string) => void
-  setLoading: (loading: boolean) => void
+// ---------- UI ----------
+
+interface UIState {
+  theme: 'dark' | 'light'
+  sidebarCollapsed: boolean
+  commandOpen: boolean
+  notifOpen: boolean
+  studymateOpen: boolean
+  toggleTheme: () => void
+  setTheme: (t: 'dark' | 'light') => void
+  setSidebarCollapsed: (v: boolean) => void
+  setCommandOpen: (v: boolean) => void
+  setNotifOpen: (v: boolean) => void
+  setStudymateOpen: (v: boolean) => void
 }
 
-export const useGroupStore = create<GroupState>()(
-  persist(
-    (set) => ({
-      groups: [],
-      currentGroup: null,
-      members: [],
-      isLoading: false,
-      setGroups: (groups) => set({ groups }),
-      addGroup: (group) => set((state) => ({ groups: [group, ...state.groups], currentGroup: group })),
-      updateGroup: (updatedGroup) =>
-        set((state) => ({
-          groups: state.groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g)),
-          currentGroup: state.currentGroup?.id === updatedGroup.id ? updatedGroup : state.currentGroup,
-        })),
-      removeGroup: (groupId) =>
-        set((state) => ({
-          groups: state.groups.filter((g) => g.id !== groupId),
-          currentGroup: state.currentGroup?.id === groupId ? null : state.currentGroup,
-        })),
-      setCurrentGroup: (group) => set({ currentGroup: group }),
-      setMembers: (members) => set({ members }),
-      addMember: (member) =>
-        set((state) => ({
-          members: [...state.members, member],
-          currentGroup: state.currentGroup
-            ? { ...state.currentGroup, members: [...state.currentGroup.members, member] }
-            : null,
-        })),
-      removeMember: (userId) =>
-        set((state) => ({
-          members: state.members.filter((m) => m.userId !== userId),
-          currentGroup: state.currentGroup
-            ? { ...state.currentGroup, members: state.currentGroup.members.filter((m) => m.userId !== userId) }
-            : null,
-        })),
-      setLoading: (loading) => set({ isLoading: loading }),
-    }),
-    {
-      name: 'group-storage',
-      partialize: (state) => ({ groups: state.groups, currentGroup: state.currentGroup }),
+function getInitialTheme(): 'dark' | 'light' {
+  if (typeof window === 'undefined') return 'light'
+  const stored = window.localStorage.getItem('sg-theme')
+  if (stored === 'dark' || stored === 'light') return stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+export const useUIStore = create<UIState>((set, get) => ({
+  theme: 'light',
+  sidebarCollapsed: false,
+  commandOpen: false,
+  notifOpen: false,
+  studymateOpen: false,
+  toggleTheme: () => {
+    const next = get().theme === 'dark' ? 'light' : 'dark'
+    set({ theme: next })
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('sg-theme', next)
+      document.documentElement.classList.toggle('dark', next === 'dark')
     }
-  )
-)
+  },
+  setTheme: (theme) => {
+    set({ theme })
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('sg-theme', theme)
+      document.documentElement.classList.toggle('dark', theme === 'dark')
+    }
+  },
+  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+  setCommandOpen: (commandOpen) => set({ commandOpen }),
+  setNotifOpen: (notifOpen) => set({ notifOpen }),
+  setStudymateOpen: (studymateOpen) => set({ studymateOpen }),
+}))
+
+// ---------- chat (realtime state mirrored from socket) ----------
 
 interface ChatState {
-  messages: Message[]
-  isConnected: boolean
-  typingUsers: Set<string>
-  setMessages: (messages: Message[]) => void
-  addMessage: (message: Message) => void
-  updateMessage: (messageId: string, content: string) => void
-  removeMessage: (messageId: string) => void
-  setConnected: (connected: boolean) => void
-  setTyping: (userId: string, isTyping: boolean) => void
+  connected: boolean
+  messages: ChatMessage[]
+  typing: string[]                       // userIds currently typing
+  online: string[]                       // userIds online in current group
+  setConnected: (v: boolean) => void
+  setMessages: (m: ChatMessage[]) => void
+  prependMessages: (m: ChatMessage[]) => void
+  addMessage: (m: ChatMessage) => void
+  /** Merge a batch of upserts by id in one pass — used by the sync poller. */
+  upsertMessages: (incoming: ChatMessage[]) => void
+  removeMessage: (id: string) => void
+  removeMessages: (ids: string[]) => void
+  updateMessage: (id: string, patch: Partial<ChatMessage>) => void
+  toggleReaction: (id: string, emoji: string, userId: string) => void
+  setTyping: (userIds: string[]) => void
+  setOnline: (userIds: string[]) => void
+  reset: () => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
+  connected: false,
   messages: [],
-  isConnected: false,
-  typingUsers: new Set(),
+  typing: [],
+  online: [],
+  setConnected: (connected) => set({ connected }),
   setMessages: (messages) => set({ messages }),
-  addMessage: (message) =>
-    set((state) => ({
-      messages: [...state.messages, message].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    })),
-  updateMessage: (messageId, content) =>
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === messageId ? { ...m, content, updatedAt: new Date().toISOString() } : m
-      ),
-    })),
-  removeMessage: (messageId) =>
-    set((state) => ({
-      messages: state.messages.filter((m) => m.id !== messageId),
-    })),
-  setConnected: (connected) => set({ isConnected: connected }),
-  setTyping: (userId, isTyping) =>
-    set((state) => {
-      const newTyping = new Set(state.typingUsers)
-      if (isTyping) newTyping.add(userId)
-      else newTyping.delete(userId)
-      return { typingUsers: newTyping }
+  prependMessages: (older) => set((s) => ({ messages: [...older, ...s.messages] })),
+  addMessage: (m) => set((s) => ({ messages: [...s.messages.filter((x) => x.id !== m.id), m] })),
+  upsertMessages: (incoming) =>
+    set((s) => {
+      if (!incoming.length) return s
+      const byId = new Map(s.messages.map((m) => [m.id, m]))
+      for (const m of incoming) byId.set(m.id, m)
+      // Preserve original ordering of known messages; new ones append chronologically.
+      const knownIds = new Set(s.messages.map((m) => m.id))
+      const kept = s.messages.map((m) => byId.get(m.id)!)
+      const added = incoming.filter((m) => !knownIds.has(m.id)).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      return { messages: [...kept, ...added] }
     }),
-}))
-
-interface CalendarState {
-  events: Event[]
-  selectedDate: Date
-  viewMode: 'month' | 'week' | 'day'
-  setEvents: (events: Event[]) => void
-  addEvent: (event: Event) => void
-  updateEvent: (event: Event) => void
-  removeEvent: (eventId: string) => void
-  setSelectedDate: (date: Date) => void
-  setViewMode: (mode: 'month' | 'week' | 'day') => void
-}
-
-export const useCalendarStore = create<CalendarState>((set) => ({
-  events: [],
-  selectedDate: new Date(),
-  viewMode: 'month',
-  setEvents: (events) => set({ events }),
-  addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
-  updateEvent: (event) =>
-    set((state) => ({
-      events: state.events.map((e) => (e.id === event.id ? event : e)),
-    })),
-  removeEvent: (eventId) =>
-    set((state) => ({
-      events: state.events.filter((e) => e.id !== eventId),
-    })),
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  setViewMode: (mode) => set({ viewMode: mode }),
-}))
-
-interface ResourceState {
-  resources: Resource[]
-  isLoading: boolean
-  setResources: (resources: Resource[]) => void
-  addResource: (resource: Resource) => void
-  updateResource: (resource: Resource) => void
-  removeResource: (resourceId: string) => void
-  setLoading: (loading: boolean) => void
-}
-
-export const useResourceStore = create<ResourceState>((set) => ({
-  resources: [],
-  isLoading: false,
-  setResources: (resources) => set({ resources }),
-  addResource: (resource) => set((state) => ({ resources: [resource, ...state.resources] })),
-  updateResource: (resource) =>
-    set((state) => ({
-      resources: state.resources.map((r) => (r.id === resource.id ? resource : r)),
-    })),
-  removeResource: (resourceId) =>
-    set((state) => ({
-      resources: state.resources.filter((r) => r.id !== resourceId),
-    })),
-  setLoading: (loading) => set({ isLoading: loading }),
-}))
-
-interface UIState {
-  sidebarOpen: boolean
-  sidebarCollapsed: boolean
-  theme: 'dark' | 'light'
-  toasts: Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>
-  toggleSidebar: () => void
-  setSidebarOpen: (open: boolean) => void
-  toggleSidebarCollapsed: () => void
-  setTheme: (theme: 'dark' | 'light') => void
-  addToast: (toast: Omit<UIState['toasts'][0], 'id'>) => void
-  removeToast: (id: string) => void
-}
-
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      sidebarOpen: true,
-      sidebarCollapsed: false,
-      theme: 'light',
-      toasts: [],
-      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-      setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
-      setTheme: (theme) => set({ theme }),
-      addToast: (toast) =>
-        set((state) => ({
-          toasts: [...state.toasts, { ...toast, id: Math.random().toString(36).slice(2) }],
-        })),
-      removeToast: (id) =>
-        set((state) => ({
-          toasts: state.toasts.filter((t) => t.id !== id),
-        })),
+  updateMessage: (id, patch) =>
+    set((s) => ({ messages: s.messages.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
+  removeMessage: (id) => set((s) => ({ messages: s.messages.filter((m) => m.id !== id) })),
+  removeMessages: (ids) =>
+    set((s) => {
+      if (!ids.length) return s
+      const gone = new Set(ids)
+      return { messages: s.messages.filter((m) => !gone.has(m.id)) }
     }),
-    {
-      name: 'ui-storage',
-      partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed, theme: state.theme }),
-    }
-  )
-)
+  toggleReaction: (id, emoji, userId) =>
+    set((s) => ({
+      messages: s.messages.map((m) => {
+        if (m.id !== id) return m
+        const existing = m.reactions.find((r) => r.emoji === emoji && r.userId === userId)
+        return {
+          ...m,
+          reactions: existing
+            ? m.reactions.filter((r) => !(r.emoji === emoji && r.userId === userId))
+            : [...m.reactions, { emoji, userId }],
+        }
+      }),
+    })),
+  setTyping: (typing) => set({ typing }),
+  setOnline: (online) => set({ online }),
+  reset: () => set({ messages: [], typing: [], online: [], connected: false }),
+}))

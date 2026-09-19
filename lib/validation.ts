@@ -116,6 +116,9 @@ export const noteSchema = z.object({
   content: z.string().max(50000).default(''),
   kind: z.enum(['LECTURE', 'EXAM', 'CHEAT_SHEET', 'PROBLEM_SOLUTION', 'REVISION']).default('LECTURE'),
   tags: z.array(z.string().trim().max(30)).max(8).default([]),
+  // Opt-in optimistic-concurrency check: the note version the edit was based on.
+  // A mismatch returns 409 instead of silently overwriting newer work.
+  baseVersion: z.number().int().positive().optional(),
 })
 
 export const focusLogSchema = z.object({
@@ -129,9 +132,10 @@ export const focusLogSchema = z.object({
 export const aiChatSchema = z.object({
   conversationId: z.string().cuid().optional(),
   message: z.string().trim().min(1).max(4000),
+  // Note content is resolved server-side from noteId (with membership check).
+  // Client-sent noteContent is intentionally not accepted.
   context: z.object({
     groupId: z.string().cuid().optional(),
     noteId: z.string().cuid().optional(),
-    noteContent: z.string().max(20000).optional(),
   }).optional(),
 })

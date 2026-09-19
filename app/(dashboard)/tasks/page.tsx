@@ -33,6 +33,37 @@ function matchesView(t: TaskItem, view: View): boolean {
   }
 }
 
+// Parse trailing natural dates from quick-add text: "...tomorrow",
+// "...next week", "...on monday". Returns { title, dueDate } — date is an
+// end-of-day ISO so the task stays "due today" all day.
+function parseQuickTask(raw: string): { title: string; dueDate: string | null } {
+  const text = raw.trim()
+  const endOfDay = (d: Date) => { const c = new Date(d); c.setHours(23, 59, 59, 999); return c }
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  const dayMatch = (s: string) => (s.match(new RegExp(`(${days.join('|')})$`, 'i')) ?? [])[0]?.toLowerCase()
+  const patterns: Array<[RegExp, (matchText: string) => Date | null]> = [
+    [/\s+today$/i, () => new Date()],
+    [/\s+tomorrow$/i, () => { const d = new Date(); d.setDate(d.getDate() + 1); return d }],
+    [/\s+next week$/i, () => { const d = new Date(); d.setDate(d.getDate() + 7); return d }],
+    [new RegExp(`\\s+on (?:next )?(${days.join('|')})$`, 'i'), (m0) => {
+      const target = days.indexOf(dayMatch(m0) ?? '')
+      if (target < 0) return null
+      const d = new Date()
+      const delta = (target - d.getDay() + 7) % 7 || 7
+      d.setDate(d.getDate() + delta)
+      return d
+    }],
+  ]
+  for (const [re, compute] of patterns) {
+    const m = re.exec(text)
+    if (m) {
+      const date = compute(m[0])
+      if (date) return { title: text.slice(0, m.index).trim(), dueDate: endOfDay(date).toISOString() }
+    }
+  }
+  return { title: text, dueDate: null }
+}
+
 export default function TasksPage() {
   const [scope, setScope] = useState<'mine' | 'group'>('mine')
   const [view, setView] = useState<View>('today')
@@ -49,6 +80,8 @@ export default function TasksPage() {
   const [comments, setComments] = useState<TaskCommentItem[] | null>(null)
   const [commentBody, setCommentBody] = useState('')
   const [postingComment, setPostingComment] = useState(false)
+  const [quickText, setQuickText] = useState('')
+  const [quickAdding, setQuickAdding] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -92,6 +125,29 @@ export default function TasksPage() {
       load()
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Quick add: parse "...tomorrow" style dates, POST, prepend optimistically.
+  const quickAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const text = quickText.trim()
+    if (!text || quickAdding) return
+    setQuickAdding(true)
+    const { title, dueDate } = parseQuickTask(text)
+    try {
+      const d = await api.post<{ task: TaskItem }>('/api/tasks', {
+        title,
+        dueDate,
+        priority: 'MEDIUM',
+        groupId: null,
+      })
+      setTasks((ts) => [d.task, ...ts])
+      setQuickText('')
+    } catch {
+      /* envelope error — keep text so the user can retry or use the full form */
+    } finally {
+      setQuickAdding(false)
     }
   }
 
@@ -196,6 +252,25 @@ export default function TasksPage() {
           <option value="LOW">Low</option>
         </select>
       </div>
+
+      {/* Quick add — one input, natural dates: "...tomorrow", "...next week" */}
+      <form
+        onSubmit={quickAdd}
+        className="flex gap-2"
+        role="search"
+      >
+        <input
+          value={quickText}
+          onChange={(e) => setQuickText(e.target.value)}
+          placeholder='Quick add… e.g. "Finish linked list assignment tomorrow"'
+          className="input py-2.5"
+          aria-label="Quick add a task"
+          maxLength={200}
+        />
+        <button type="submit" disabled={!quickText.trim() || quickAdding} className="btn btn-primary btn-sm shrink-0">
+          {quickAdding ? 'Adding…' : 'Add task'}
+        </button>
+      </form>
 
       {loading ? (
         <SkeletonList rows={6} />

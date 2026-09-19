@@ -96,6 +96,48 @@ export const GET = withUser(async (user) => {
     })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 8)
 
+  // Today's Plan timeline — every item from real data, sorted by time.
+  // Tasks due today → 'task'; today's sessions → 'session'; plus one
+  // recommended focus block derived from the top open task's subject.
+  type PlanItem =
+    | { kind: 'task'; id: string; at: string | null; title: string; subject: string | null; groupId: string | null; groupName: string | null; priority: string; overdue: boolean }
+    | { kind: 'session'; id: string; at: string; title: string; subject: string | null; groupId: string | null; groupName: string | null; location: string | null; isOnline: boolean; goingCount: number }
+    | { kind: 'focus'; id: string; at: string | null; title: string; subject: string | null; recommendedMinutes: number }
+
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+
+  const taskItems: Array<Extract<PlanItem, { kind: 'task' }>> = dueTasks
+    .filter((t) => t.dueDate && new Date(t.dueDate) <= todayEnd)
+    .map((t) => ({
+      kind: 'task' as const, id: t.id, at: t.dueDate ? t.dueDate.toISOString() : null,
+      title: t.title, subject: t.group?.name ?? null, groupId: t.group?.id ?? null, groupName: t.group?.name ?? null,
+      priority: t.priority, overdue: Boolean(t.dueDate && new Date(t.dueDate) < todayStart),
+    }))
+
+  const sessionItems: Array<Extract<PlanItem, { kind: 'session' }>> = upcoming
+    .filter((s) => new Date(s.startsAt) <= todayEnd)
+    .map((s) => ({
+      kind: 'session' as const, id: s.id, at: s.startsAt.toISOString(), title: s.title,
+      subject: s.group?.name ?? null, groupId: s.group?.id ?? null, groupName: s.group?.name ?? null,
+      location: s.location ?? null, isOnline: s.isOnline,
+      goingCount: s._count.rsvps,
+    }))
+
+  // Recommended focus: 50 min if nothing studied yet today, else top up to a
+  // light 25-min block — derived, never invented (id is synthetic but kind-labeled).
+  const focusSubject = taskItems[0]?.subject ?? sessionItems[0]?.subject ?? null
+  const recommendedMinutes = todayMinutes >= 50 ? 25 : 50
+  const focusItem: PlanItem = {
+    kind: 'focus', id: 'focus-recommendation', at: null, title: 'Focus session',
+    subject: focusSubject, recommendedMinutes,
+  }
+
+  const todayTimeline: PlanItem[] = [
+    ...[...taskItems].sort((a, b) => (a.at ?? '9999').localeCompare(b.at ?? '9999')),
+    ...[...sessionItems].sort((a, b) => a.at.localeCompare(b.at)),
+    focusItem,
+  ]
+
   return ok({
     stats: {
       activeGroups: myGroupIds.length,
@@ -112,6 +154,7 @@ export const GET = withUser(async (user) => {
       tasksDueToday: dueTasks.filter((t) => t.dueDate && new Date(t.dueDate) <= todayEnd).length,
       sessionsToday: upcoming.filter((s) => new Date(s.startsAt) <= todayEnd).length,
     },
+    todayTimeline,
     upcoming,
     groups: groupsWithMeta,
     dueTasks,

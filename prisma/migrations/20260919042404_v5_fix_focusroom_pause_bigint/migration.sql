@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "public"."FocusRoom" ALTER COLUMN "pausedAtMs" SET DATA TYPE BIGINT,
+ALTER COLUMN "pausedTotalMs" SET DATA TYPE BIGINT;

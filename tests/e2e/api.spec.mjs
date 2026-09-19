@@ -95,6 +95,7 @@ async function main() {
   const A = makeClient() // group owner
   const B = makeClient() // second member
   const C = makeClient() // outsider (registered, not a member)
+  let C2 = C // fresh outsider for V5 sections (re-registered after C logs out)
 
   section('Health & unauthenticated access')
   {
@@ -453,6 +454,62 @@ async function main() {
     assert(out.status === 200 && out.body?.data?.signedOut === true, 'logout succeeds', `status ${out.status}`)
     const afterOut = await C.get('/api/auth/me')
     assert(afterOut.status === 401, 'session invalidated after logout', `status ${afterOut.status}`)
+
+    // C is now logged out; register a fresh outsider for the V5 sections below.
+    C2 = makeClient()
+    const c2reg = await registerUser(C2, 'outsider2')
+    globalThis.__c2Id = c2reg.id
+  }
+
+  section('Notes: version history, autosave-equivalent PUT, restore')
+  {
+    // Create a note in the group
+    const note = await A.post(`/api/notes?groupId=${globalThis.__groupId}`, {
+      title: 'E2E versioned note',
+      content: 'Version one content',
+      kind: 'LECTURE',
+      tags: ['e2e'],
+    })
+    const nid = note.body?.data?.note?.id
+    assert(note.status === 200 && nid, 'note creation works', `status ${note.status}`)
+
+    // Two successive edits → snapshot versions server-side
+    const edit1 = await B.put(`/api/notes/${nid}`, { title: 'E2E versioned note', content: 'Version two content', kind: 'LECTURE', tags: ['e2e'] })
+    assert(edit1.status === 200 && edit1.body?.data?.note?.version === 2, 'first edit bumps to version 2', `status ${edit1.status} v=${edit1.body?.data?.note?.version}`)
+    const edit2 = await A.put(`/api/notes/${nid}`, { title: 'E2E versioned note', content: 'Version three content', kind: 'LECTURE', tags: ['e2e'] })
+    assert(edit2.status === 200 && edit2.body?.data?.note?.version === 3, 'second edit bumps to version 3')
+
+    // History: exactly two snapshots (v1, v2), newest first
+    const history = await A.get(`/api/notes/${nid}?versions=1`)
+    const versions = history.body?.data?.versions ?? []
+    assert(history.status === 200 && versions.length === 2, 'version history returns 2 snapshots', `got ${versions.length}`)
+    assert(versions[0]?.version === 2 && versions[0]?.content === 'Version two content', 'newest snapshot is v2 with its own content')
+    assert(versions[0]?.editor?.name, 'snapshot records who edited')
+
+    // Member gating: outsider cannot read history
+    const outsiderHistory = await C.get(`/api/notes/${nid}?versions=1`)
+    assert(outsiderHistory.status === 401 || outsiderHistory.status === 403, 'note history blocked for non-members', `status ${outsiderHistory.status}`)
+
+    // Restore v2 → note content reverts but becomes v4; history grows to 3
+    const restore = await A.post(`/api/notes/${nid}`, { versionId: versions[0].id })
+    assert(restore.status === 200 && restore.body?.data?.note?.content === 'Version two content', 'restore applies the old content', `status ${restore.status}`)
+    assert(restore.body?.data?.note?.version === 4, 'restore creates a NEW version (4), history preserved')
+    const historyAfter = await A.get(`/api/notes/${nid}?versions=1`)
+    assert((historyAfter.body?.data?.versions ?? []).length === 3, 'history grows to 3 snapshots after restore')
+  }
+
+  section('Dashboard aggregate: today timeline shape')
+  {
+    const dash = await A.get('/api/dashboard')
+    assert(dash.status === 200 && dash.body?.ok, 'dashboard aggregate loads')
+    const timeline = dash.body?.data?.todayTimeline
+    assert(Array.isArray(timeline), 'todayTimeline is an array')
+    if (timeline.length > 0) {
+      const valid = timeline.every((i) => ['task', 'session', 'focus'].includes(i.kind))
+      assert(valid, 'every timeline item has a known kind', timeline.map((i) => i.kind).join(','))
+      const focus = timeline.find((i) => i.kind === 'focus')
+      if (focus) assert(typeof focus.recommendedMinutes === 'number' && focus.recommendedMinutes > 0, 'focus recommendation carries a positive duration')
+    }
   }
 
   section('Security regressions: privacy-aware search, resource counter IDOR, upload key handling')
@@ -482,6 +539,161 @@ async function main() {
     // Malformed percent-encoding on the file route must never 5xx (Next may 400 before routing)
     const badKey = await A.raw('/api/uploads/uploads/%ff%fe-broken.png')
     assert(badKey.status < 500, 'malformed upload key never causes a server error', `status ${badKey.status}`)
+  }
+
+  section('V5: Notes conflict detection (baseVersion → 409)')
+  {
+    const note = await A.post(`/api/notes?groupId=${globalThis.__groupId}`, {
+      title: 'E2E conflict note',
+      content: 'base content',
+      kind: 'LECTURE',
+      tags: [],
+    })
+    const nid = note.body?.data?.note?.id
+    assert(note.status === 200 && nid, 'conflict-note created', `status ${note.status}`)
+    globalThis.__v5noteId = nid
+
+    // B saves first (note moves to v2). A still holds v1 as base.
+    const bSave = await B.put(`/api/notes/${nid}`, { title: 'E2E conflict note', content: 'B edits first', kind: 'LECTURE', tags: [], baseVersion: 1 })
+    assert(bSave.status === 200 && bSave.body?.data?.note?.version === 2, 'B saves with matching baseVersion', `status ${bSave.status}`)
+
+    // A now saves with the stale base → must be refused, not silently overwritten
+    const stale = await A.put(`/api/notes/${nid}`, { title: 'E2E conflict note', content: 'A stale save', kind: 'LECTURE', tags: [], baseVersion: 1 })
+    assert(stale.status === 409, 'stale baseVersion rejected with 409', `status ${stale.status}`)
+    assert(stale.body?.data?.note?.version === 2 || stale.body?.note?.version === 2, '409 carries the current note', `payload keys: ${Object.keys(stale.body ?? {}).join(',')}`)
+    assert(stale.body?.error, '409 includes a human-readable error')
+
+    // Content was NOT overwritten by the stale save
+    const after = await A.get(`/api/notes/${nid}`)
+    assert(after.body?.data?.note?.content === 'B edits first', 'stale save did not overwrite B\'s work', `content: ${after.body?.data?.note?.content?.slice(0, 40)}`)
+
+    // Explicit overwrite (no baseVersion) still allowed — deliberate choice
+    const overwrite = await A.put(`/api/notes/${nid}`, { title: 'E2E conflict note', content: 'A deliberate overwrite', kind: 'LECTURE', tags: [] })
+    assert(overwrite.status === 200, 'deliberate overwrite without baseVersion succeeds')
+  }
+
+  section('V5: AI note context authorization')
+  {
+    // An outsider referencing a member's note must be rejected with 403 —
+    // even on deployments where AI is unconfigured (503 otherwise).
+    const outsiderNote = await C2.post(`/api/ai/chat`, {
+      message: 'summarize',
+      context: { noteId: globalThis.__v5noteId },
+    })
+    assert(
+      outsiderNote.status === 403 || outsiderNote.status === 503,
+      'AI chat with unauthorized noteId rejected (403) or honest 503 when AI off',
+      `status ${outsiderNote.status}`,
+    )
+
+    // A nonexistent note id is 404, not a crash
+    const ghost = await A.post('/api/ai/chat', { message: 'summarize', context: { noteId: 'noteid_does_not_exist_000' } })
+    assert(ghost.status === 404 || ghost.status === 503, 'nonexistent noteId → 404 (or 503 when AI off)', `status ${ghost.status}`)
+  }
+
+  section('V5: Chat unread badge (server-derived)')
+  {
+    const gid = globalThis.__groupId
+    // Baseline: B has read everything (B synced last in the chat section)
+    await B.patch(`/api/groups/${gid}/sync`, { lastReadAt: new Date().toISOString() })
+    const before = await B.get('/api/groups?mine=1&pageSize=24')
+    const gBefore = (before.body?.data?.groups ?? []).find((g) => g.id === gid)
+    assert(before.status === 200 && gBefore && (gBefore.unreadCount ?? 0) === 0, 'unreadCount is 0 after read-sync', `got ${gBefore?.unreadCount}`)
+
+    // A sends two messages → B's unread becomes 2
+    await A.post(`/api/groups/${gid}/messages`, { content: 'unread badge test one' })
+    await A.post(`/api/groups/${gid}/messages`, { content: 'unread badge test two' })
+    const after = await B.get('/api/groups?mine=1&pageSize=24')
+    const gAfter = (after.body?.data?.groups ?? []).find((g) => g.id === gid)
+    assert(after.status === 200 && gAfter?.unreadCount === 2, 'two new messages produce unreadCount 2', `got ${gAfter?.unreadCount}`)
+
+    // A's own view: own messages must not count as unread for the sender
+    const senderView = await A.get('/api/groups?mine=1&pageSize=24')
+    const gSender = (senderView.body?.data?.groups ?? []).find((g) => g.id === gid)
+    assert((gSender?.unreadCount ?? 0) === 0, 'sender does not count own messages as unread', `got ${gSender?.unreadCount}`)
+
+    // Reading clears it
+    await B.patch(`/api/groups/${gid}/sync`, { lastReadAt: new Date().toISOString() })
+    const cleared = await B.get('/api/groups?mine=1&pageSize=24')
+    const gCleared = (cleared.body?.data?.groups ?? []).find((g) => g.id === gid)
+    assert((gCleared?.unreadCount ?? 0) === 0, 'unreadCount clears after read-sync')
+  }
+
+  section('V5: Focus Room lifecycle (create → presence → pause → resume → complete)')
+  {
+    const gid = globalThis.__groupId
+    const created = await A.post('/api/focus-rooms', {
+      subject: 'E2E Subject',
+      goal: 'Lifecycle test',
+      durationMin: 25,
+      groupId: gid,
+    })
+    assert(created.status === 200 && created.body?.data?.room?.id, 'room created', `status ${created.status}`)
+    const rid = created.body?.data?.room?.id
+
+    // Room is immediately LIVE with a server-set clock
+    const view0 = await A.get(`/api/focus-rooms/${rid}`)
+    assert(view0.status === 200 && view0.body?.data?.room?.status === 'LIVE', 'room starts LIVE', `status ${view0.status}`)
+    assert(view0.body?.data?.room?.endsAt && view0.body?.data?.room?.serverNow, 'server clock fields present (endsAt + serverNow)')
+
+    // Outsider must NOT even view a group-scoped room
+    const outsiderView = await C2.get(`/api/focus-rooms/${rid}`)
+    assert(outsiderView.status === 403 || outsiderView.status === 404, 'outsider view rejected', `status ${outsiderView.status}`)
+
+    // B "joins" via presence heartbeat (membership-gated)
+    const beat = await B.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING' })
+    assert(beat.status === 200, 'member heartbeat joins presence', `status ${beat.status}`)
+
+    // Live list shows the room with real participant counts
+    const list = await B.get('/api/focus-rooms')
+    const listed = (list.body?.data?.rooms ?? []).find((r) => r.id === rid)
+    assert(list.status === 200 && listed && listed.activeCount >= 2, 'live list shows room with 2 active participants', `got ${listed?.activeCount}`)
+
+    // Pause/resume: host-only, state persisted server-side
+    const pausedByB = await B.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'pause' })
+    assert(pausedByB.status === 403, 'non-host cannot pause', `status ${pausedByB.status}`)
+    const paused = await A.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'pause' })
+    assert(paused.status === 200 && paused.body?.data?.status === 'PAUSED', 'host pause persists PAUSED', `status ${paused.status}`)
+    const resumed = await A.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'resume' })
+    assert(resumed.status === 200 && resumed.body?.data?.status === 'LIVE', 'host resume returns to LIVE', `status ${resumed.status}`)
+
+    // Complete (host ends room): persists a study log + streak for the host
+    const completed = await A.post(`/api/focus-rooms/${rid}`)
+    assert(completed.status === 200 && completed.body?.data?.completed === true, 'completion returns completed', `status ${completed.status}`)
+    assert(typeof completed.body?.data?.minutes === 'number' && completed.body?.data?.minutes >= 1, 'completion carries studied minutes')
+
+    // Idempotent: second completion must not double-log
+    const again = await A.post(`/api/focus-rooms/${rid}`)
+    assert(again.status === 200 && again.body?.data?.logId === completed.body?.data?.logId, 'second completion is idempotent (same logId)', `logId ${again.body?.data?.logId} vs ${completed.body?.data?.logId}`)
+
+    // Outsider completion attempt on a completed group room still gated by membership
+    const outsiderComplete = await C2.post(`/api/focus-rooms/${rid}`)
+    assert(outsiderComplete.status === 403 || outsiderComplete.status === 404, 'outsider completion rejected', `status ${outsiderComplete.status}`)
+  }
+
+  section('V5: Quiz attempt persistence & privacy')
+  {
+    const save = await A.post('/api/quiz', {
+      subject: 'E2E Subject',
+      topic: 'Linked Lists',
+      difficulty: 'MEDIUM',
+      answers: [
+        { question: 'Q1', selectedAnswer: 'Stack', correctAnswer: 'Stack', isCorrect: true },
+        { question: 'Q2', selectedAnswer: 'Queue', correctAnswer: 'Stack', isCorrect: false },
+      ],
+    })
+    assert(save.status === 200 && save.body?.data?.attempt?.id, 'quiz attempt persists', `status ${save.status}`)
+
+    const hist = await A.get('/api/quiz')
+    const mine = hist.body?.data?.attempts ?? []
+    const saved = mine.find((a) => a.subject === 'E2E Subject')
+    assert(hist.status === 200 && saved, 'quiz history returns own attempts')
+    assert(saved && saved.totalQuestions === 2 && saved.correctAnswers === 1 && saved.score === 50, 'score recomputed server-side from answers (1/2 → 50%)', JSON.stringify(saved))
+
+    // Privacy: B must never see A's quiz results
+    const bHist = await B.get('/api/quiz')
+    const bAttempts = bHist.body?.data?.attempts ?? []
+    assert(bHist.status === 200 && bAttempts.every((a) => a.subject !== 'E2E Subject'), 'B cannot see A\'s quiz attempts', `B sees ${bAttempts.length} attempts`)
   }
 
   section('Cleanup')

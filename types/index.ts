@@ -40,6 +40,7 @@ export interface GroupSummary {
   nextSessionAt?: string | null
   weeklyMessages?: number
   myRole?: Role | null
+  unreadCount?: number
 }
 
 export interface DashboardData {
@@ -52,6 +53,11 @@ export interface DashboardData {
     todayMinutes: number
   }
   todayPlan: { focusDoneToday: number; tasksDueToday: number; sessionsToday: number }
+  todayTimeline?: Array<
+    | { kind: 'task'; id: string; at: string | null; title: string; subject: string | null; groupId: string | null; groupName: string | null; priority: string; overdue: boolean }
+    | { kind: 'session'; id: string; at: string; title: string; subject: string | null; groupId: string | null; groupName: string | null; location: string | null; isOnline: boolean; goingCount: number }
+    | { kind: 'focus'; id: string; at: null; title: string; subject: string | null; recommendedMinutes: number }
+  >
   upcoming: Array<{
     id: string
     title: string

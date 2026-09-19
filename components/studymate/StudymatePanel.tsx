@@ -6,6 +6,25 @@ import { api } from '@/lib/client'
 import { useUIStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
+/** Topbar launcher — the single entry point for the StudyMate panel. */
+export function StudymateButton() {
+  const studymateOpen = useUIStore((s) => s.studymateOpen)
+  const setStudymateOpen = useUIStore((s) => s.setStudymateOpen)
+  return (
+    <button
+      onClick={() => setStudymateOpen(!studymateOpen)}
+      className={cn(
+        'rounded-lg p-2 transition-colors hover:bg-[rgb(var(--sg-hover))]',
+        studymateOpen ? 'text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]' : 'text-muted hover:text-[rgb(var(--sg-foreground))]',
+      )}
+      aria-label={studymateOpen ? 'Close StudyMate' : 'Open StudyMate AI assistant'}
+      aria-expanded={studymateOpen}
+    >
+      <Sparkles className="h-[18px] w-[18px]" />
+    </button>
+  )
+}
+
 interface Msg { role: 'user' | 'assistant'; content: string; quiz?: QuizQuestion[]; quizResult?: string; quizMeta?: { subject: string }; cards?: Flashcard[] }
 
 const QUIZ_FORMAT = 'Create 5 multiple-choice quiz questions about the topic below. Use exactly this format:\nQ1. question\nA) option\nB) option\nC) option\nD) option\nAnswer: B\n(repeat for Q1-Q5)\n\nTopic: '
@@ -226,21 +245,14 @@ export function StudymatePanel() {
 
   return (
     <>
-      {/* Floating button */}
-      <button
-        onClick={() => setStudymateOpen(!studymateOpen)}
-        className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[rgb(var(--sg-accent))] text-white shadow-large transition-transform hover:scale-105 active:scale-95 lg:bottom-6 lg:right-6"
-        aria-label={studymateOpen ? 'Close StudyMate' : 'Open StudyMate AI assistant'}
-      >
-        {studymateOpen ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-      </button>
+      {/* Launcher is rendered by the topbar (StudymateButton) — no floating FAB. */}
 
       <AnimatePresence>
         {studymateOpen && (
           <motion.aside
             initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="fixed bottom-36 right-4 z-40 flex h-[520px] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-xl border bg-[rgb(var(--sg-card))] shadow-large lg:bottom-24 lg:right-6"
+            className="fixed bottom-20 right-4 z-40 flex h-[520px] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-xl border bg-[rgb(var(--sg-elevated))] shadow-large lg:bottom-6 lg:right-6"
             role="dialog" aria-label="StudyMate assistant"
           >
             <div className="flex items-center justify-between border-b px-4 py-3">

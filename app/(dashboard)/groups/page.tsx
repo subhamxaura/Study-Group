@@ -65,16 +65,19 @@ function MyGroupsInner() {
           {groups.map((g) => (
             <Link key={g.id} href={`/groups/${g.id}`} className="card-hover flex flex-col p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-base font-bold text-white">{g.name[0]}</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--sg-accent))] text-base font-bold text-white">{g.name[0]}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold">{g.name}</p>
+                    <span className="truncate text-sm font-semibold">{g.name}</span>
                     {g.myRole === 'OWNER' && <Badge>Owner</Badge>}
                     {g.myRole === 'ADMIN' && <Badge tone="muted">Admin</Badge>}
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted">{g.subject} · {g.memberCount} members</p>
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                <span className="flex shrink-0 items-center gap-1.5">
+                  {!!g.unreadCount && <span className="h-2 w-2 rounded-full bg-[rgb(var(--sg-accent))]" aria-label={`${g.unreadCount} unread messages`} />}
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                </span>
               </div>
               <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-secondary">{g.description}</p>
               <div className="mt-3 flex items-center gap-4 border-t pt-3 text-xs text-muted">

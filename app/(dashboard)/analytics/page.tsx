@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { BarChart3, Clock, CheckSquare, Timer, Flame, Users, Lightbulb } from 'lucide-react'
 import { StatCard, EmptyState } from '@/components/ui'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
 
@@ -56,10 +56,35 @@ export default function AnalyticsPage() {
 
   if (loading && !data) {
     return (
-      <div className="section-container space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton h-24 rounded-xl" />)}</div>
-        <div className="skeleton h-64 rounded-xl" />
+      <div className="section-container max-w-5xl space-y-6">
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-9 w-56 rounded-lg" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="card flex items-start gap-3 p-4">
+              <Skeleton className="h-6 w-6 rounded-md" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <SkeletonStat key={i} />)}</div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+          <div className="mt-4 flex h-40 items-end gap-1.5">
+            {[40, 65, 30, 80, 55, 45, 70].map((h, i) => <Skeleton key={i} className="w-full rounded-md" style={{ height: `${h}%` }} />)}
+          </div>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[0, 1].map((i) => <div key={i} className="card h-56 p-5" />)}
+        </div>
       </div>
     )
   }
@@ -95,7 +120,7 @@ export default function AnalyticsPage() {
               className={cn(
                 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                 range === r.value
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-[rgb(var(--sg-accent))] text-white'
                   : 'text-secondary hover:bg-[rgb(var(--sg-surface-muted))]',
               )}
             >
@@ -124,10 +149,10 @@ export default function AnalyticsPage() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard label={`Study Hours (${range === '7' ? 'week' : range === '30' ? '30d' : 'semester'})`} value={`${rangeHours(data)}h`} icon={Clock} />
-        <StatCard label="Focus Sessions" value={data.focusSessions} sub={range === '7' ? 'this week' : range === '30' ? 'in 30 days' : 'this semester'} icon={Timer} />
-        <StatCard label="Tasks Completed" value={`${data.tasks.completed}/${data.tasks.total}`} sub={`${completionRate}%`} icon={CheckSquare} />
-        <StatCard label="Current Streak" value={`🔥 ${data.streak.current}`} sub={`best: ${data.streak.longest}`} icon={Flame} />
+        <StatCard label={`Study time (${range === '7' ? 'week' : range === '30' ? '30 days' : 'semester'})`} value={`${rangeHours(data)}h`} icon={Clock} />
+        <StatCard label="Focus sessions" value={data.focusSessions} sub={range === '7' ? 'this week' : range === '30' ? 'in 30 days' : 'this semester'} icon={Timer} />
+        <StatCard label="Tasks completed" value={`${data.tasks.completed}/${data.tasks.total}`} sub={`${completionRate}% completion rate`} icon={CheckSquare} />
+        <StatCard label="Current streak" value={data.streak.current === 0 ? '0 days' : `${data.streak.current}-day${data.streak.current === 1 ? '' : 's'}`} sub={data.streak.current === 0 ? 'Start a focus session to begin' : `best: ${data.streak.longest} days`} icon={Flame} />
       </div>
 
       {/* Activity chart */}
@@ -144,7 +169,7 @@ export default function AnalyticsPage() {
               )}
               <div className="flex w-full flex-1 items-end">
                 <div
-                  className={cn('w-full rounded-md transition-all', d.minutes > 0 ? 'bg-indigo-500/80' : 'bg-[rgb(var(--sg-border))]')}
+                  className={cn('w-full rounded-md transition-all', d.minutes > 0 ? 'bg-[rgb(var(--sg-accent))]/80' : 'bg-[rgb(var(--sg-border))]')}
                   style={{ height: `${Math.max(3, (d.minutes / max) * 100)}%` }}
                   title={`${d.label}: ${Math.round((d.minutes / 60) * 10) / 10}h`}
                 />
@@ -162,7 +187,7 @@ export default function AnalyticsPage() {
           <h2 className="mb-4 text-sm font-semibold">Subjects studied</h2>
           {data.subjects.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              No subject data yet. Add a subject when you complete focus sessions. <Link href="/focus" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">Start one →</Link>
+              No subject data yet. Add a subject when you complete focus sessions. <Link href="/focus" className="font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">Start one →</Link>
             </p>
           ) : (
             <div className="space-y-3">
@@ -173,7 +198,7 @@ export default function AnalyticsPage() {
                     <span className="text-muted">{s.hours}h</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[rgb(var(--sg-surface-muted))]">
-                    <div className="h-full rounded-full bg-indigo-500/80" style={{ width: `${(s.hours / maxSubject) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[rgb(var(--sg-accent))]/80" style={{ width: `${(s.hours / maxSubject) * 100}%` }} />
                   </div>
                 </div>
               ))}
@@ -187,7 +212,7 @@ export default function AnalyticsPage() {
           <div className="space-y-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-secondary">Current streak</span>
-              <span className="font-semibold">🔥 {data.streak.current} days</span>
+              <span className="font-semibold">{data.streak.current} {data.streak.current === 1 ? 'day' : 'days'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-secondary">Longest streak</span>
@@ -211,7 +236,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
           <div className="mt-5 border-t pt-4">
-            <Link href="/focus" className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+            <Link href="/focus" className="text-xs font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">
               Log more hours with a focus session →
             </Link>
           </div>

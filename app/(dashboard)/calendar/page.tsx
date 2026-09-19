@@ -156,7 +156,7 @@ export default function CalendarPage() {
               key={v}
               onClick={() => setView(v)}
               className={cn('rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors',
-                view === v ? 'bg-indigo-600 text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))])')}
+                view === v ? 'bg-[rgb(var(--sg-accent))] text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))])')}
             >
               {v}
             </button>
@@ -180,7 +180,7 @@ export default function CalendarPage() {
                 <div key={i} className={cn('min-h-[92px] border-b border-r p-1.5', !inMonth && 'bg-[rgb(var(--sg-surface-muted))]/30 opacity-50')}>
                   <div className="flex items-center justify-between">
                     <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
-                      isToday ? 'bg-indigo-600 text-white' : 'text-secondary')}>
+                      isToday ? 'bg-[rgb(var(--sg-accent))] text-white' : 'text-secondary')}>
                       {day.getDate()}
                     </span>
                   </div>

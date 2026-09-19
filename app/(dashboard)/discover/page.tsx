@@ -270,7 +270,7 @@ export default function DiscoverPage() {
           <>
             {!sections.hasSubjects && (
               <p className="text-sm text-muted">
-                Add subjects in <a href="/settings" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">Settings</a> to get personalized recommendations.
+                Add subjects in <a href="/settings" className="font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">Settings</a> to get personalized recommendations.
               </p>
             )}
             {([

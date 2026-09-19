@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, Clock, Users, Calendar, CheckSquare, Flame, BookOpen, Pencil } from 'lucide-react'
 import { Avatar, Badge, Button, Input, Modal, Textarea } from '@/components/ui'
+import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { useSession } from '@/lib/store'
 import { api } from '@/lib/client'
 
@@ -69,7 +70,32 @@ export default function ProfilePage() {
   }
 
   if (loading || !data) {
-    return <div className="section-container"><div className="skeleton h-64 rounded-xl" /></div>
+    return (
+      <div className="section-container max-w-4xl space-y-6">
+        {/* Header card */}
+        <div className="card p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <Skeleton className="h-20 w-20 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-4 w-full max-w-md" />
+              <div className="flex gap-1.5 pt-1">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-5 w-28 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{[0, 1, 2, 3, 4].map((i) => <SkeletonStat key={i} />)}</div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[0, 1].map((i) => <div key={i} className="card h-48 p-5" />)}
+        </div>
+      </div>
+    )
   }
 
   const p = data.profile
@@ -83,7 +109,7 @@ export default function ProfilePage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight">{p.name}</h1>
-              {p.stats.streak > 0 && <Badge tone="warning">🔥 {p.stats.streak} day streak</Badge>}
+              {p.stats.streak > 0 && <Badge tone="warning">{p.stats.streak}-day streak</Badge>}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
               {p.university && <span className="inline-flex items-center gap-1"><GraduationCap className="h-4 w-4" />{p.university}</span>}
@@ -110,12 +136,14 @@ export default function ProfilePage() {
           { icon: Users, label: 'Groups', value: p.stats.groups },
           { icon: Calendar, label: 'Sessions', value: p.stats.sessions },
           { icon: CheckSquare, label: 'Tasks done', value: p.stats.tasksCompleted },
-          { icon: Flame, label: 'Streak', value: `🔥 ${p.stats.streak}` },
+          { icon: Flame, label: 'Streak', value: p.stats.streak === 0 ? '0 days' : `${p.stats.streak}-day${p.stats.streak === 1 ? '' : 's'}` },
         ].map((s) => (
-          <div key={s.label} className="card p-4 text-center">
-            <s.icon className="mx-auto h-5 w-5 text-muted" />
-            <p className="mt-1.5 text-lg font-semibold">{s.value}</p>
-            <p className="text-xs text-muted">{s.label}</p>
+          <div key={s.label} className="card p-4">
+            <div className="flex items-center gap-2">
+              <s.icon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+              <p className="truncate text-xs font-medium text-secondary">{s.label}</p>
+            </div>
+            <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight">{s.value}</p>
           </div>
         ))}
       </div>
@@ -125,12 +153,12 @@ export default function ProfilePage() {
         <div className="card p-5">
           <h2 className="mb-3 text-sm font-semibold">Groups</h2>
           {p.groups.length === 0 ? (
-            <p className="py-4 text-sm text-muted">Not in any group yet. <Link href="/discover" className="font-medium text-indigo-600 dark:text-indigo-400">Discover →</Link></p>
+            <p className="py-4 text-sm text-muted">Not in any group yet. <Link href="/discover" className="font-medium text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]">Discover →</Link></p>
           ) : (
             <div className="space-y-2">
               {p.groups.map((g) => (
                 <Link key={g.id} href={`/groups/${g.id}`} className="flex items-center gap-2.5 rounded-lg border p-2.5 transition-colors hover:bg-[rgb(var(--sg-hover))]">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">{g.name[0]}</span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[rgb(var(--sg-accent))] text-xs font-bold text-white">{g.name[0]}</span>
                   <div><p className="text-sm font-medium">{g.name}</p><p className="text-xs text-muted">{g.subject}</p></div>
                 </Link>
               ))}

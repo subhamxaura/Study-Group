@@ -197,7 +197,7 @@ function GroupOverview({ groupId, group, canManage, onOpenTab }: {
               ))
             )}
           </div>
-          <button onClick={() => onOpenTab('discussion')} className="mt-3 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">Open discussion →</button>
+          <button onClick={() => onOpenTab('discussion')} className="mt-3 text-xs font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">Open discussion →</button>
         </div>
       </div>
 
@@ -216,7 +216,7 @@ function GroupOverview({ groupId, group, canManage, onOpenTab }: {
               ))
             )}
           </div>
-          <button onClick={() => onOpenTab('calendar')} className="mt-3 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">View calendar →</button>
+          <button onClick={() => onOpenTab('calendar')} className="mt-3 text-xs font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">View calendar →</button>
         </div>
 
         <div className="card p-4">
@@ -233,7 +233,7 @@ function GroupOverview({ groupId, group, canManage, onOpenTab }: {
               ))
             )}
           </div>
-          <button onClick={() => onOpenTab('resources')} className="mt-3 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">Browse resources →</button>
+          <button onClick={() => onOpenTab('resources')} className="mt-3 text-xs font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">Browse resources →</button>
         </div>
       </div>
     </div>
@@ -335,7 +335,7 @@ function GroupTasks({ groupId, isMember, members }: { groupId: string; isMember:
                         {t.assignee && <Avatar name={t.assignee.name} src={t.assignee.avatarUrl} size="xs" />}
                       </div>
                       {col.key !== 'COMPLETED' && (
-                        <button onClick={() => setStatus(t.id, col.key === 'TODO' ? 'IN_PROGRESS' : 'COMPLETED')} className="mt-2 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                        <button onClick={() => setStatus(t.id, col.key === 'TODO' ? 'IN_PROGRESS' : 'COMPLETED')} className="mt-2 text-xs font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]">
                           {col.key === 'TODO' ? 'Start →' : 'Mark complete ✓'}
                         </button>
                       )}
@@ -816,7 +816,7 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
                       <span className="min-w-0 flex-1 truncate text-muted">{v.title} · {v.editor.name} · {new Date(v.createdAt).toLocaleString()}</span>
                       <button
                         onClick={() => restoreVersion(v.id)}
-                        className="shrink-0 font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                        className="shrink-0 font-medium text-[rgb(var(--sg-accent))] hover:underline dark:text-[rgb(var(--sg-accent-muted))]"
                         aria-label={`Restore version ${v.version}`}
                       >
                         Restore

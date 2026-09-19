@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckSquare, Plus, Flag, MessageSquare, X, Repeat } from 'lucide-react'
 import { Badge, Button, EmptyState, Input, Modal, Select, Textarea } from '@/components/ui'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { SkeletonTaskList } from '@/components/ui/Skeleton'
 import { api } from '@/lib/client'
 import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
@@ -273,7 +273,7 @@ export default function TasksPage() {
       </form>
 
       {loading ? (
-        <SkeletonList rows={6} />
+        <SkeletonTaskList rows={6} />
       ) : shown.length === 0 ? (
         <div className="card">
           <EmptyState

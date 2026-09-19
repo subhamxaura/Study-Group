@@ -10,7 +10,8 @@ import { setTimeout as sleep } from 'node:timers/promises'
 
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const PORT = 9333
-const BASE = 'http://localhost:3210'
+const BASE = process.env.QA_BASE_URL || 'http://localhost:3210'
+const HOST = new URL(BASE).hostname
 const WIDTHS = [1440, 768, 390]
 const PAGES = ['/dashboard', '/focus', '/tasks', '/calendar', '/discover', '/messages', '/groups', '/resources', '/notes', '/analytics', '/my-study', '/profile', '/settings']
 
@@ -67,7 +68,7 @@ if (authLine) {
 if (!token) { console.error('NO AUTH TOKEN in jar — pass QA_COOKIE_JAR'); process.exit(1) }
 
 await send('Network.enable')
-await send('Network.setCookie', { name: cookieName, value: token, domain: 'localhost', path: '/', httpOnly: true, secure: false })
+await send('Network.setCookie', { name: cookieName, value: token, domain: HOST, path: '/', httpOnly: true, secure: BASE.startsWith('https') })
 
 let failures = 0
 for (const width of WIDTHS) {

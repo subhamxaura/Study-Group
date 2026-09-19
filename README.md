@@ -104,8 +104,12 @@ npm run db:studio   # prisma studio
 1. Push this repo and import it in Vercel.
 2. Provision Postgres (Neon, Supabase or Vercel Postgres) and set `DATABASE_URL`.
 3. Set `JWT_SECRET` (32+ random bytes), optionally `AI_PROVIDER` / `OPENAI_API_KEY`.
-4. Deploy — `prisma generate` runs on install; apply migrations to the
-   production database with `npm run db:migrate` (or `db:push` for the first deploy).
+4. Deploy — the Vercel build (`npm run vercel-build`) runs `prisma generate`,
+   then `prisma migrate deploy` (applies pending migrations safely, never
+   destructive), then `next build`. Verify afterwards with
+   `GET /api/health` (reports env presence, DB reachability and migration
+   state — never secret values). If you deploy without `DATABASE_URL` set,
+   the build fails on `prisma migrate deploy` instead of shipping a broken app.
 
 ## Architecture notes
 

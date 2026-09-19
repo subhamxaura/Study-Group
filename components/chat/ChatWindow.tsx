@@ -8,6 +8,7 @@
  * deletions separately, so other users' edits/reactions propagate.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
   Search, Pin, Smile, Reply, Pencil, Trash2, X, ArrowDown, Paperclip, FileText, Loader2,
 } from 'lucide-react'
@@ -44,13 +45,23 @@ interface UploadResult { resource: { id: string; url: string; title: string; mim
 function renderContent(content: string, members: Array<{ id: string; name: string }>) {
   // Shared tokenizer — same longest-prefix rule the server uses to resolve mentions,
   // so a highlighted @Name is always one the server actually notified.
+  // Mentions link to the member's public profile (respecting its privacy settings).
   const tokens = tokenizeMentions(content, members)
   return tokens.map((t, i) =>
-    t.type === 'mention' ? (
-      <span key={i} className="rounded bg-white/20 px-1 font-medium text-inherit">
-        @{t.value}
-      </span>
-    ) : (
+    t.type === 'mention' ? (() => {
+      const member = members.find((m) => m.name === t.value)
+      if (!member) return <span key={i} className="rounded bg-white/20 px-1 font-medium text-inherit">@{t.value}</span>
+      return (
+        <Link
+          key={i}
+          href={`/profile?userId=${member.id}`}
+          className="rounded bg-white/20 px-1 font-medium text-inherit underline-offset-2 hover:underline"
+          aria-label={`View ${t.value}'s profile`}
+        >
+          @{t.value}
+        </Link>
+      )
+    })() : (
       <span key={i}>{t.value}</span>
     ),
   )

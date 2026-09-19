@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Play, Pause, RotateCcw, Timer, Flame, CheckCircle2, Users, Target, ArrowRight } from 'lucide-react'
 import { Badge, Button, EmptyState, Input, Select } from '@/components/ui'
+import { FocusRooms } from '@/components/focus/FocusRooms'
 import { api } from '@/lib/client'
 import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
@@ -236,13 +237,16 @@ export default function FocusPage() {
         <p className="mt-1 text-sm text-secondary">Deep work sessions that log real study hours.</p>
       </div>
 
+      {/* Focus Rooms — the signature V5 shared-focus experience */}
+      {!completed && <FocusRooms onRoomCompleted={(c) => setCompleted({ minutes: c.minutes, tasks: 0, streak: data?.streak.current ?? 0, endedEarly: false })} />}
+
       {/* Completion state */}
       {completed && (
         <div className="card border-emerald-200 bg-emerald-50/60 p-6 text-center dark:border-emerald-500/20 dark:bg-emerald-500/10">
           <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600 dark:text-emerald-400" />
           <h2 className="mt-3 text-lg font-semibold">Session complete</h2>
           <p className="mt-1 text-sm text-secondary">
-            {completed.minutes} minutes focused{completed.endedEarly ? '' : ' — full session'}
+            {completed.minutes} {completed.minutes === 1 ? 'minute' : 'minutes'} focused{completed.endedEarly ? '' : ' — full session'}
           </p>
           <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-3 text-sm">
             <div><p className="text-xl font-semibold">+{completed.minutes}m</p><p className="text-xs text-muted">Added today</p></div>

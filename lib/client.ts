@@ -2,9 +2,12 @@
 
 export class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  /** Response body payload when the server attaches one (e.g. 409 conflict returns the current note). */
+  payload?: Record<string, unknown>
+  constructor(message: string, status: number, payload?: Record<string, unknown>) {
     super(message)
     this.status = status
+    this.payload = payload
   }
 }
 
@@ -20,9 +23,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new ApiError(`Request failed (${res.status})`, res.status)
   }
-  const body = json as { ok?: boolean; data?: T; error?: string }
+  const body = json as { ok?: boolean; data?: T; error?: string } & Record<string, unknown>
   if (!res.ok || body.ok === false) {
-    throw new ApiError(body.error || `Request failed (${res.status})`, res.status)
+    const { ok: _ok, data: _data, error: _error, ...rest } = body
+    throw new ApiError(body.error || `Request failed (${res.status})`, res.status, rest)
   }
   return body.data as T
 }

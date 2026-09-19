@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { StatCard, EmptyState, Badge } from '@/components/ui'
 import { Skeleton, SkeletonList } from '@/components/ui/Skeleton'
+import { FocusRooms } from '@/components/focus/FocusRooms'
 import { useSession } from '@/lib/store'
 import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [week, setWeek] = useState<Array<{ day: string; minutes: number }>>([])
   const [insights, setInsights] = useState<Array<{ id: string; icon: string; text: string }>>([])
+  const [nextAction, setNextAction] = useState<{ kind: string; text: string; href: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -55,8 +57,14 @@ export default function DashboardPage() {
       api.get<DashboardData>('/api/dashboard'),
       api.get<{ daily: Array<{ day: string; minutes: number }> }>('/api/analytics'),
       api.get<{ insights: Array<{ id: string; icon: string; text: string }> }>('/api/insights'),
+      api.get<{ nextAction: { kind: string; text: string; href: string } | null }>('/api/my-study').catch(() => null),
     ])
-      .then(([d, a, i]) => { setData(d); setWeek(a.daily); setInsights(i.insights) })
+      .then(([d, a, i, m]) => {
+        setData(d); setWeek(a.daily)
+        // Dashboard shows at most ONE insight — depth lives on /my-study.
+        setInsights(i.insights.slice(0, 1))
+        setNextAction(m?.nextAction ?? null)
+      })
       .catch(() => setError('Could not load your dashboard. Please refresh.'))
       .finally(() => setLoading(false))
   }, [])
@@ -101,7 +109,9 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{greeting()}, {user?.name.split(' ')[0]} 👋</h1>
-          <p className="mt-1 text-sm text-secondary">Here&apos;s what needs your attention today.</p>
+          <p className="mt-1 text-sm text-secondary">
+            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · Here&apos;s what needs your attention today.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/discover" className="btn btn-secondary btn-sm">Find groups</Link>
@@ -116,6 +126,22 @@ export default function DashboardPage() {
         <StatCard label="Tasks Completed" value={data.stats.tasksCompleted} icon={CheckSquare} />
         <StatCard label="Current Streak" value={`🔥 ${data.stats.streak}`} sub="days" icon={Flame} />
       </div>
+
+      {/* WHAT SHOULD I DO NOW — the most prominent block, from real data */}
+      {nextAction && (
+        <div className="card border-indigo-200 bg-gradient-to-r from-indigo-50/80 to-transparent p-4 dark:border-indigo-500/20 dark:from-indigo-500/10 dark:to-transparent" data-testid="next-action">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white"><Zap className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">What should I do now?</p>
+                <p className="truncate text-sm font-medium">{nextAction.text}</p>
+              </div>
+            </div>
+            <Link href={nextAction.href} className="btn btn-primary btn-sm shrink-0">Do it <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </div>
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -141,29 +167,83 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* LIVE NOW — real focus rooms, joined from the dashboard */}
+      <FocusRooms />
+
       {/* Main grid */}
       <div className="grid gap-5 lg:grid-cols-[1.7fr_0.9fr]">
         <div className="space-y-5">
-          {/* Today's plan */}
+          {/* Today's plan — timeline from real data (tasks, sessions, recommended focus) */}
           <div className="card p-4">
-            <h2 className="flex items-center gap-2 text-sm font-semibold"><Target className="h-4 w-4 text-muted" /> Today&apos;s study plan</h2>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <div className="rounded-lg border bg-[rgb(var(--sg-surface-muted))]/60 p-3">
-                <p className="text-xs text-muted">Focus time</p>
-                <p className="text-lg font-semibold">{data.todayPlan.focusDoneToday}<span className="text-xs font-normal text-muted">m</span></p>
-              </div>
-              <div className="rounded-lg border bg-[rgb(var(--sg-surface-muted))]/60 p-3">
-                <p className="text-xs text-muted">Tasks due today</p>
-                <p className="text-lg font-semibold">{data.todayPlan.tasksDueToday}</p>
-              </div>
-              <div className="rounded-lg border bg-[rgb(var(--sg-surface-muted))]/60 p-3">
-                <p className="text-xs text-muted">Sessions today</p>
-                <p className="text-lg font-semibold">{data.todayPlan.sessionsToday}</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold"><Target className="h-4 w-4 text-muted" /> Today&apos;s study plan</h2>
+              <span className="text-xs text-muted">{data.todayPlan.focusDoneToday}m focused today</span>
             </div>
-            <Link href="/focus" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-              <Timer className="h-3.5 w-3.5" /> Start a focus session <ChevronRight className="h-3 w-3" />
-            </Link>
+            {(data.todayTimeline?.length ?? 0) === 0 ? (
+              <div className="mt-3">
+                <p className="text-sm text-secondary">Your schedule is clear today.</p>
+                <Link href="/focus" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                  <Timer className="h-3.5 w-3.5" /> Start a focus session anyway <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            ) : (
+              <ol className="mt-3 space-y-0">
+                {data.todayTimeline!.map((item, idx) => {
+                  const time = item.kind === 'focus'
+                    ? `${item.recommendedMinutes}m`
+                    : item.at
+                      ? new Date(item.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+                      : 'Anytime'
+                  return (
+                    <li key={`${item.kind}-${item.id}`} className="relative flex gap-3 pb-4 last:pb-0">
+                      {/* Timeline spine */}
+                      {idx < data.todayTimeline!.length - 1 && (
+                        <span aria-hidden="true" className="absolute left-[27px] top-8 h-[calc(100%-16px)] w-px bg-[rgb(var(--sg-border))]" />
+                      )}
+                      <span className="w-12 shrink-0 pt-0.5 text-right text-[11px] font-medium tabular-nums text-muted">
+                        {time}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-[rgb(var(--sg-card))]',
+                          item.kind === 'task'
+                            ? item.overdue ? 'bg-red-500' : 'bg-amber-500'
+                            : item.kind === 'session'
+                              ? 'bg-indigo-500'
+                              : 'bg-emerald-500',
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <p className="text-sm font-medium">{item.title}</p>
+                          {item.kind === 'task' && item.overdue && <Badge tone="danger">Overdue</Badge>}
+                          {item.kind === 'task' && !item.overdue && item.priority === 'HIGH' && <Badge tone="warning">High</Badge>}
+                          {item.kind === 'focus' && <Badge tone="success">Recommended</Badge>}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {item.kind === 'task' && `Task${item.groupName ? ` · ${item.groupName}` : ' · Personal'}`}
+                          {item.kind === 'session' && `Study session${item.groupName ? ` · ${item.groupName}` : ''}${item.isOnline ? ' · Online' : item.location ? ` · ${item.location}` : ''}`}
+                          {item.kind === 'focus' && `Focus${item.subject ? ` · ${item.subject}` : ''}`}
+                        </p>
+                        {item.kind === 'session' && (
+                          <p className="mt-0.5 text-xs text-muted">{item.goingCount} going</p>
+                        )}
+                      </div>
+                      {item.kind === 'task' && item.groupId && (
+                        <Link href={`/groups/${item.groupId}`} className="self-center text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">Open</Link>
+                      )}
+                      {item.kind === 'session' && (
+                        <Link href="/calendar" className="self-center text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">View</Link>
+                      )}
+                      {item.kind === 'focus' && (
+                        <Link href="/focus" className="self-center text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">Start</Link>
+                      )}
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
           </div>
 
           {/* My groups */}

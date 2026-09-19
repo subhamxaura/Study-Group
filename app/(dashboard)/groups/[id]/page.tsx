@@ -545,7 +545,7 @@ function GroupCalendar({ groupId, isMember }: { groupId: string; isMember: boole
                       className={cn(
                         'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
                         s.myRsvp === st
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-[rgb(var(--sg-accent))] text-white'
                           : 'border text-secondary hover:bg-[rgb(var(--sg-hover))]'
                       )}
                     >

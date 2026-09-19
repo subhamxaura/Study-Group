@@ -276,7 +276,7 @@ export default function FocusPage() {
                   key={p}
                   onClick={() => pick(p)}
                   className={cn('rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                    duration === p ? 'border-indigo-600 bg-indigo-600 text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]')}
+                    duration === p ? 'border-[rgb(var(--sg-accent))] bg-[rgb(var(--sg-accent))] text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]')}
                 >
                   {p} min
                 </button>

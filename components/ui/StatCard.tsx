@@ -4,29 +4,29 @@ import { cn } from '@/lib/utils'
 interface StatCardProps {
   label: string
   value: string | number
+  /** Context line — trend, comparison, or an encouraging zero-state hint. */
   sub?: string
   icon: LucideIcon
+  /** Renders the value in the accent color (used when the number is the hero). */
   accent?: boolean
 }
 
-export function StatCard({ label, value, sub, icon: Icon, accent = true }: StatCardProps) {
+export function StatCard({ label, value, sub, icon: Icon, accent = false }: StatCardProps) {
   return (
     <div className="card p-4">
-      <div className="flex items-center justify-between">
-        <span
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-lg border',
-            accent
-              ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20'
-              : 'bg-[rgb(var(--sg-surface-muted))] text-[rgb(var(--sg-muted))]'
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        {sub && <span className="hidden text-xs text-muted sm:inline">{sub}</span>}
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+        <p className="truncate text-xs font-medium text-secondary">{label}</p>
       </div>
-      <p className="mt-3 text-xs text-muted">{label}</p>
-      <p className="text-xl font-semibold tracking-tight">{value}</p>
+      <p
+        className={cn(
+          'mt-2 text-2xl font-semibold tracking-tight tabular-nums',
+          accent && 'text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]'
+        )}
+      >
+        {value}
+      </p>
+      {sub && <p className="mt-0.5 truncate text-xs text-muted">{sub}</p>}
     </div>
   )
 }

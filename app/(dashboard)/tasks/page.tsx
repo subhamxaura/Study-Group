@@ -218,7 +218,7 @@ export default function TasksPage() {
               onClick={() => setScope(s)}
               className={cn(
                 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                scope === s ? 'bg-indigo-600 text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]'
+                scope === s ? 'bg-[rgb(var(--sg-accent))] text-white' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]'
               )}
             >
               {s === 'mine' ? 'My Tasks' : 'Group Tasks'}
@@ -232,7 +232,7 @@ export default function TasksPage() {
               onClick={() => setView(v)}
               className={cn(
                 'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
-                view === v ? 'bg-[rgb(var(--sg-surface-muted))] text-primary' : 'text-muted hover:text-secondary'
+                view === v ? 'bg-[rgb(var(--sg-surface-muted))] text-[rgb(var(--sg-foreground))]' : 'text-muted hover:text-secondary'
               )}
             >
               {label}

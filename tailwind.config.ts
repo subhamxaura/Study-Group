@@ -6,38 +6,28 @@ const config: Config = {
     extend: {
       colors: {
         border: 'rgb(var(--sg-border) / <alpha-value>)',
-        subCrack: {
-          primary: 'rgb(var(--sg-background) / <alpha-value>)',
-          secondary: 'rgb(var(--sg-surface) / <alpha-value>)',
-          tertiary: 'rgb(var(--sg-surface-muted) / <alpha-value>)',
+        // Layered surface system — the single source of truth for backgrounds
+        surface: {
+          DEFAULT: 'rgb(var(--sg-surface) / <alpha-value>)',
+          muted: 'rgb(var(--sg-surface-muted) / <alpha-value>)',
           card: 'rgb(var(--sg-card) / <alpha-value>)',
+          elevated: 'rgb(var(--sg-elevated) / <alpha-value>)',
           hover: 'rgb(var(--sg-hover) / <alpha-value>)',
         },
-        velvet: {
-          royal: 'rgb(var(--sg-accent) / <alpha-value>)',
-          'royal-light': 'rgb(var(--sg-accent-muted) / <alpha-value>)',
-          charcoal: 'rgb(var(--sg-border) / <alpha-value>)',
-          deep: 'rgb(var(--sg-surface) / <alpha-value>)',
-          plum: 'rgb(var(--sg-accent) / <alpha-value>)',
-        },
         accent: {
-          gold: 'rgb(var(--sg-accent) / <alpha-value>)',
-          'gold-muted': 'rgb(var(--sg-accent-muted) / <alpha-value>)',
-          silver: 'rgb(var(--sg-foreground) / <alpha-value>)',
-          'silver-muted': 'rgb(var(--sg-muted) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--sg-accent) / <alpha-value>)',
+          muted: 'rgb(var(--sg-accent-muted) / <alpha-value>)',
+          soft: 'rgb(var(--sg-accent-soft) / <alpha-value>)',
         },
-        text: {
-          primary: 'rgb(var(--sg-foreground) / <alpha-value>)',
-          secondary: 'rgb(var(--sg-secondary) / <alpha-value>)',
-          muted: 'rgb(var(--sg-muted) / <alpha-value>)',
-        },
-        status: { success: '#10B981', warning: '#F59E0B', error: '#EF4444', info: '#3B82F6' },
+        // Status — tokenized so light/dark both get tuned shades
+        success: 'rgb(var(--sg-success) / <alpha-value>)',
+        warning: 'rgb(var(--sg-warning) / <alpha-value>)',
+        danger: 'rgb(var(--sg-danger) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter','ui-sans-serif','system-ui','Segoe UI','sans-serif'],
         mono: ['JetBrains Mono','monospace'],
       },
-      borderRadius: { '4xl': '2rem' },
       boxShadow: {
         soft: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.06)',
         medium: '0 4px 12px rgba(0,0,0,0.07)',

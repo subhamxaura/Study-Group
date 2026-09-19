@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
               className={cn(
                 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                 range === r.value
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-[rgb(var(--sg-accent))] text-white'
                   : 'text-secondary hover:bg-[rgb(var(--sg-surface-muted))]',
               )}
             >

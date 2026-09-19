@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   LayoutDashboard, Users, Compass, MessageCircle, Calendar, BookOpen,
-  CheckSquare, Timer, BarChart3, Bell, Settings, LogOut, Menu, X, Search, Plus, BookMarked,
+  CheckSquare, Timer, BarChart3, Bell, Settings, LogOut, Menu, X, Search, Plus, BookMarked, Brain,
 } from 'lucide-react'
 import { Avatar, Button, Badge, ToastViewport } from '@/components/ui'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -29,7 +29,8 @@ const OnboardingWizardLazy = dynamic(
 
 // Grouped command-center navigation. Badges are computed from real state,
 // never hardcoded — sections render only when they have entries.
-const navSections: Array<{ label: string; items: Array<{ label: string; icon: React.ComponentType<{ className?: string }>; href: string; badge?: 'overdue' | 'nextSession' }> }> = [
+type NavBadge = 'overdue' | 'nextSession' | 'unread'
+const navSections: Array<{ label: string; items: Array<{ label: string; icon: React.ComponentType<{ className?: string }>; href: string; badge?: NavBadge }> }> = [
   {
     label: 'Home',
     items: [{ label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }],
@@ -46,7 +47,7 @@ const navSections: Array<{ label: string; items: Array<{ label: string; icon: Re
     label: 'Collaborate',
     items: [
       { label: 'Discover', icon: Compass, href: '/discover' },
-      { label: 'Messages', icon: MessageCircle, href: '/messages' },
+      { label: 'Messages', icon: MessageCircle, href: '/messages', badge: 'unread' as const },
       { label: 'Groups', icon: Users, href: '/groups' },
     ],
   },
@@ -59,7 +60,10 @@ const navSections: Array<{ label: string; items: Array<{ label: string; icon: Re
   },
   {
     label: 'Insights',
-    items: [{ label: 'Analytics', icon: BarChart3, href: '/analytics' }],
+    items: [
+      { label: 'Analytics', icon: BarChart3, href: '/analytics' },
+      { label: 'My Study', icon: Brain, href: '/my-study' },
+    ],
   },
 ]
 
@@ -83,6 +87,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifCount, setNotifCount] = useState(0)
   const [overdueCount, setOverdueCount] = useState(0)
   const [nextSession, setNextSession] = useState<{ id: string; startsAt: string } | null>(null)
+  // Server-derived unread counts: Messages nav badge + per-group dots.
+  const totalUnread = myGroups.reduce((sum, g) => sum + (g.unreadCount ?? 0), 0)
   // Contextual sidebar badges: overdue task count and "today" session dot.
   const badgeState = {
     overdue: overdueCount,
@@ -90,7 +96,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       nextSession && new Date(nextSession.startsAt).toDateString() === new Date().toDateString()
         ? 'today'
         : null,
-  } as { overdue: number; nextSession: string | null }
+    unread: totalUnread > 0 ? totalUnread : null,
+  } as { overdue: number; nextSession: string | null; unread: number | null }
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => { init() }, [init])
@@ -187,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const badgeValue = item.badge === 'overdue' ? badgeState.overdue : item.badge === 'nextSession' ? badgeState.nextSession : null
+                  const badgeValue = item.badge === 'overdue' ? badgeState.overdue : item.badge === 'nextSession' ? badgeState.nextSession : item.badge === 'unread' ? badgeState.unread : null
                   return (
                     <Link
                       key={item.label} href={item.href}
@@ -230,6 +237,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {g.name[0]}
                   </span>
                   <span className="truncate">{g.name}</span>
+                  {!!g.unreadCount && (
+                    <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-indigo-500" aria-label={`${g.unreadCount} unread messages`} />
+                  )}
                 </Link>
               ))}
             </div>

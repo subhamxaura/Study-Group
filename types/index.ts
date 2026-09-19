@@ -40,6 +40,7 @@ export interface GroupSummary {
   nextSessionAt?: string | null
   weeklyMessages?: number
   myRole?: Role | null
+  unreadCount?: number
 }
 
 export interface DashboardData {

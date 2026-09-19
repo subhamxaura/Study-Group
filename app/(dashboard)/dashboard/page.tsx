@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { StatCard, EmptyState, Badge } from '@/components/ui'
 import { Skeleton, SkeletonList } from '@/components/ui/Skeleton'
+import { FocusRooms } from '@/components/focus/FocusRooms'
 import { useSession } from '@/lib/store'
 import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [week, setWeek] = useState<Array<{ day: string; minutes: number }>>([])
   const [insights, setInsights] = useState<Array<{ id: string; icon: string; text: string }>>([])
+  const [nextAction, setNextAction] = useState<{ kind: string; text: string; href: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -55,8 +57,14 @@ export default function DashboardPage() {
       api.get<DashboardData>('/api/dashboard'),
       api.get<{ daily: Array<{ day: string; minutes: number }> }>('/api/analytics'),
       api.get<{ insights: Array<{ id: string; icon: string; text: string }> }>('/api/insights'),
+      api.get<{ nextAction: { kind: string; text: string; href: string } | null }>('/api/my-study').catch(() => null),
     ])
-      .then(([d, a, i]) => { setData(d); setWeek(a.daily); setInsights(i.insights) })
+      .then(([d, a, i, m]) => {
+        setData(d); setWeek(a.daily)
+        // Dashboard shows at most ONE insight — depth lives on /my-study.
+        setInsights(i.insights.slice(0, 1))
+        setNextAction(m?.nextAction ?? null)
+      })
       .catch(() => setError('Could not load your dashboard. Please refresh.'))
       .finally(() => setLoading(false))
   }, [])
@@ -119,6 +127,22 @@ export default function DashboardPage() {
         <StatCard label="Current Streak" value={`🔥 ${data.stats.streak}`} sub="days" icon={Flame} />
       </div>
 
+      {/* WHAT SHOULD I DO NOW — the most prominent block, from real data */}
+      {nextAction && (
+        <div className="card border-indigo-200 bg-gradient-to-r from-indigo-50/80 to-transparent p-4 dark:border-indigo-500/20 dark:from-indigo-500/10 dark:to-transparent" data-testid="next-action">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white"><Zap className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">What should I do now?</p>
+                <p className="truncate text-sm font-medium">{nextAction.text}</p>
+              </div>
+            </div>
+            <Link href={nextAction.href} className="btn btn-primary btn-sm shrink-0">Do it <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </div>
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {[
@@ -142,6 +166,9 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* LIVE NOW — real focus rooms, joined from the dashboard */}
+      <FocusRooms />
 
       {/* Main grid */}
       <div className="grid gap-5 lg:grid-cols-[1.7fr_0.9fr]">

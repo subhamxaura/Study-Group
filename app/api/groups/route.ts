@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ok, withUser, parseBody } from '@/lib/api'
 import { createGroupSchema } from '@/lib/validation'
@@ -62,6 +63,24 @@ export const GET = withUser(async (user, req) => {
     }),
   ])
 
+  // Server-derived unread counts, only for the caller's own group list.
+  // One grouped query over the page's groups — compares each message against
+  // that group's membership lastReadMessageAt; own messages never count.
+  const unreadMap = new Map<string, number>()
+  if (mine && groups.length > 0) {
+    const unreadRows = await prisma.$queryRaw<Array<{ groupId: string; unread: number }>>`
+      SELECT m."groupId", COUNT(*)::int AS unread
+      FROM "Message" m
+      JOIN "GroupMember" gm ON gm."groupId" = m."groupId" AND gm."userId" = ${user.id}
+      WHERE m."groupId" IN (${Prisma.join(groups.map((g) => g.id))})
+        AND m."userId" <> ${user.id}
+        AND m."deletedAt" IS NULL
+        AND (gm."lastReadMessageAt" IS NULL OR m."createdAt" > gm."lastReadMessageAt")
+      GROUP BY m."groupId"
+    `
+    for (const row of unreadRows) unreadMap.set(row.groupId, Number(row.unread))
+  }
+
   const mapped = groups.map((g) => {
     const count = g._count.members
     let sizeBand = 'any'
@@ -77,6 +96,7 @@ export const GET = withUser(async (user, req) => {
       sessionCount: g._count.sessions,
       resourceCount: g._count.resources,
       myRole: g.members[0]?.role ?? null,
+      unreadCount: unreadMap.get(g.id) ?? 0,
       _sizeMatch: size ? sizeBand !== 'no' : true,
     }
   })

@@ -605,7 +605,8 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ title: '', content: '', kind: 'LECTURE', tags: '' })
   const [saving, setSaving] = useState(false)
-  const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [noteSaveState, setNoteSaveState] = useState<'idle' | 'saving' | 'saved' | 'conflict'>('idle')
+  const [noteConflict, setNoteConflict] = useState<{ note: NoteItem } | null>(null)
   const [versionsOpen, setVersionsOpen] = useState(false)
   const [noteVersions, setNoteVersions] = useState<Array<{ id: string; version: number; title: string; content: string; kind: string; tags: string[]; createdAt: string; editor: { id: string; name: string } }> | null>(null)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -652,7 +653,7 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
     setSaving(true)
     try {
       const d = await api.put<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, {
-        title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags,
+        title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags, baseVersion: activeNote.version,
       })
       lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
       setActiveNote(d.note)
@@ -660,6 +661,32 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
       load()
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Autosave hit a conflict: someone else saved while we were editing.
+  // Show a real choice — keep local edits or take the remote version.
+  const resolveConflict = async (keepMine: boolean) => {
+    if (!activeNote || !noteConflict) return
+    try {
+      if (keepMine) {
+        // Save local edits without the stale baseVersion (deliberate overwrite).
+        const d = await api.put<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, {
+          title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags,
+        })
+        lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
+        setActiveNote(d.note)
+        setNoteSaveState('saved')
+        load()
+      } else {
+        const remote = noteConflict.note as unknown as NoteItem
+        lastSavedRef.current = `${remote.title}\u0000${remote.content}`
+        setActiveNote(remote)
+        setNoteSaveState('saved')
+      }
+      if (versionsOpen && activeNote) loadVersions(activeNote.id)
+    } finally {
+      setNoteConflict(null)
     }
   }
 
@@ -678,15 +705,22 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
       setNoteSaveState('saving')
       try {
         const d = await api.put<{ note: NoteItem }>(`/api/notes/${activeNote.id}`, {
-          title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags,
+          title: activeNote.title, content: activeNote.content, kind: activeNote.kind, tags: activeNote.tags, baseVersion: activeNote.version,
         })
         lastSavedRef.current = `${d.note.title}\u0000${d.note.content}`
         setActiveNote(d.note)
         setNoteSaveState('saved')
         load()
         if (versionsOpen) loadVersions(d.note.id)
-      } catch {
-        setNoteSaveState('idle')
+      } catch (e) {
+        const err = e as { status?: number; payload?: { note?: NoteItem } }
+        const conflictNote = err?.payload?.note
+        if (err?.status === 409 && conflictNote) {
+          setNoteConflict({ note: conflictNote })
+          setNoteSaveState('conflict')
+        } else {
+          setNoteSaveState('idle')
+        }
       }
     }, 1500)
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current) }
@@ -750,8 +784,18 @@ function GroupNotes({ groupId, isMember }: { groupId: string; isMember: boolean 
             />
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted" aria-live="polite">
-                {noteSaveState === 'saving' ? 'Saving…' : noteSaveState === 'saved' ? `Saved · version ${activeNote.version}` : `Version ${activeNote.version} · autosaves`}
+                {noteSaveState === 'saving' ? 'Saving…' : noteSaveState === 'saved' ? `Saved · version ${activeNote.version}` : noteSaveState === 'conflict' ? 'Save conflict — resolve below' : `Version ${activeNote.version} · autosaves`}
               </p>
+              {noteSaveState === 'conflict' && noteConflict && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="alert">
+                  <p className="font-medium text-amber-700 dark:text-amber-300">This note changed while you were editing.</p>
+                  <p className="mt-1 text-xs text-secondary">The current version is v{noteConflict.note.version}. Saving yours will overwrite it (a backup stays in history); or take the current version and discard your changes.</p>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => resolveConflict(true)} className="btn btn-primary btn-sm">Keep my edits</button>
+                    <button onClick={() => resolveConflict(false)} className="btn btn-ghost btn-sm">Take current version</button>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => setVersionsOpen((v) => !v)} className="btn btn-ghost btn-sm" aria-expanded={versionsOpen}>
                   History

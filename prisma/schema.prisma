@@ -140,6 +140,9 @@ model User {
   noteVersions     NoteVersion[]      @relation("NoteVersionEdits")
   focusLogs        StudySessionLog[]
   streak           StudyStreak?
+  hostedFocusRooms FocusRoom[]        @relation("FocusRoomHost")
+  focusRoomParticipations FocusRoomParticipant[]
+  quizAttempts     QuizAttempt[]
   notifications    Notification[]
   aiConversations  AIConversation[]
   invitesSent      GroupInvite[]     @relation("InviteInviter")
@@ -178,6 +181,7 @@ model Group {
   events    CalendarEvent[]
   resources Resource[]
   notes     Note[]
+  focusRooms FocusRoom[]
 
   @@index([subject])
   @@index([university])
@@ -498,6 +502,74 @@ model StudyStreak {
   weeklyGoalMin Int       @default(300)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- focus rooms (V5) ----------
+
+// A shared focus session others can join. State lives server-side; the timer
+// is derived from endsAt/pausedAtMs so every client computes the same time.
+model FocusRoom {
+  id           String   @id @default(cuid())
+  hostId       String
+  groupId      String?
+  subject      String
+  goal         String?
+  durationMin  Int
+  taskId       String?
+  // WAITING | LIVE | PAUSED | COMPLETED | CANCELLED
+  status       String   @default("LIVE")
+  startedAt    DateTime @default(now())
+  endsAt       DateTime
+  // Epoch-ms pause bookkeeping. BigInt because epoch ms exceeds Int4 range —
+  // a plain Int would throw "integer out of range" on the first pause.
+  pausedAtMs   BigInt?
+  pausedTotalMs BigInt  @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  host         User  @relation("FocusRoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  group        Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  participants FocusRoomParticipant[]
+
+  @@index([status, endsAt])
+  @@index([groupId, status])
+}
+
+model FocusRoomParticipant {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  // FOCUSING | PAUSED | COMPLETED
+  presence  String   @default("FOCUSING")
+  joinedAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  room FocusRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId, lastSeenAt])
+}
+
+// ---------- quiz engine (V5) ----------
+
+// One persisted quiz attempt with per-question answers for weak-topic analysis.
+model QuizAttempt {
+  id             String   @id @default(cuid())
+  userId         String
+  subject        String
+  topic          String?
+  difficulty     String   @default("MEDIUM")
+  totalQuestions Int
+  correctAnswers Int
+  score          Int      // 0-100
+  answersJson    String   // [{question, selectedAnswer, correctAnswer, isCorrect}]
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, subject])
 }
 
 // ---------- notifications ----------

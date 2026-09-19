@@ -3,6 +3,7 @@ import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { getProvider, isAIConfigured, STUDYMATE_SYSTEM_PROMPT } from '@/lib/ai/provider'
 import { aiChatSchema } from '@/lib/validation'
 import { rateLimit } from '@/lib/rateLimit'
+import { requireMembership } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,16 @@ export const POST = withUser(async (user, req) => {
   if (!rl.ok) return fail('You are sending messages too quickly. Give StudyMate a moment.', 429, { retryAfter: rl.retryAfter })
   const data = await parseBody(req, aiChatSchema)
   const provider = getProvider()
-  if (!provider) return fail('AI provider unavailable', 503)
+  if (!provider) {
+    // Even with AI unconfigured, a requested note must be authorized first —
+    // the endpoint's behavior must not leak whether a note id exists.
+    if (data.context?.noteId) {
+      const note = await prisma.note.findUnique({ where: { id: data.context.noteId }, select: { groupId: true } })
+      if (!note) return fail('Note not found', 404)
+      await requireMembership(note.groupId, user.id)
+    }
+    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY to enable it.', 503)
+  }
 
   // Resolve or create conversation
   let conversationId = data.conversationId
@@ -41,14 +51,24 @@ export const POST = withUser(async (user, req) => {
     select: { role: true, content: true },
   })
 
-  const contextBlock = data.context?.noteContent
-    ? `\n\n[Study material provided by the student]\n"""\n${data.context.noteContent.slice(0, 6000)}\n"""`
-    : ''
+  // Study context: when a noteId is given, the SERVER loads and authorizes the
+  // note — client-sent noteContent is never trusted (a student could otherwise
+  // make StudyMate read a private note they can access only by guessing ids).
+  let noteContext = ''
+  if (data.context?.noteId) {
+    const note = await prisma.note.findUnique({
+      where: { id: data.context.noteId },
+      select: { id: true, groupId: true, title: true, content: true },
+    })
+    if (!note) return fail('Note not found', 404)
+    await requireMembership(note.groupId, user.id)
+    noteContext = `\n\n[Study material — note "${note.title}"]\n"""\n${note.content.slice(0, 6000)}\n"""`
+  }
 
   const completion = await provider.chat([
     { role: 'system', content: STUDYMATE_SYSTEM_PROMPT },
     ...history,
-    { role: 'user', content: data.message + contextBlock },
+    { role: 'user', content: data.message + noteContext },
   ])
 
   await prisma.$transaction([

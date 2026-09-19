@@ -17,6 +17,17 @@ export const PUT = withUser(async (user, req, ctx: Ctx) => {
   await requireMembership(note.groupId, user.id)
 
   const data = await parseBody(req, noteSchema)
+  // Conflict detection: if the client declares the version it edited from and
+  // someone else (or another tab) has saved since, refuse instead of
+  // silently destroying their work. 409 carries the current note so the
+  // editor can offer a real choice.
+  if (data.baseVersion !== undefined && data.baseVersion !== note.version) {
+    const current = await prisma.note.findUnique({
+      where: { id },
+      include: { author: { select: { id: true, name: true, avatarUrl: true } } },
+    })
+    return fail('This note was updated by someone else while you were editing.', 409, { note: current })
+  }
   const updated = await prisma.$transaction(async (tx) => {
     await tx.noteVersion.create({
       data: {

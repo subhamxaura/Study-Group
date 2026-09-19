@@ -4,34 +4,45 @@
 
 @layer base {
   :root {
-    --sg-background: 249 250 251;
+    /* Light — "Focused social productivity" palette */
+    --sg-background: 247 248 252;
     --sg-surface: 255 255 255;
-    --sg-surface-muted: 243 244 246;
+    --sg-surface-muted: 243 244 249;
     --sg-card: 255 255 255;
-    --sg-hover: 243 244 246;
-    --sg-border: 228 231 236;
-    --sg-foreground: 17 24 39;
-    --sg-secondary: 55 65 81;
-    --sg-muted: 107 114 128;
-    --sg-accent: 79 70 229;
-    --sg-accent-muted: 67 56 202;
-    --sg-accent-soft: 238 242 255;
-    --radius: 12px;
+    --sg-elevated: 255 255 255;
+    --sg-hover: 243 244 249;
+    --sg-border: 229 231 239;
+    --sg-foreground: 21 24 39;
+    --sg-secondary: 104 112 134;
+    --sg-muted: 144 151 168;
+    --sg-accent: 85 72 232;
+    --sg-accent-muted: 70 58 212;
+    --sg-accent-soft: 238 240 255;
+    --sg-success: 16 185 129;
+    --sg-warning: 217 119 6;
+    --sg-danger: 225 29 72;
+    --radius-card: 14px;
+    --radius-control: 10px;
   }
 
   .dark {
-    --sg-background: 12 12 14;
-    --sg-surface: 19 19 22;
-    --sg-surface-muted: 27 27 31;
-    --sg-card: 19 19 22;
-    --sg-hover: 30 30 34;
-    --sg-border: 38 38 43;
-    --sg-foreground: 244 244 245;
-    --sg-secondary: 190 190 196;
-    --sg-muted: 130 130 138;
-    --sg-accent: 99 102 241;
-    --sg-accent-muted: 129 140 248;
-    --sg-accent-soft: 30 27 75;
+    /* Dark — deep charcoal with layered surfaces, intentionally designed */
+    --sg-background: 9 10 15;
+    --sg-surface: 17 19 26;
+    --sg-surface-muted: 23 25 35;
+    --sg-card: 17 19 26;
+    --sg-elevated: 23 25 35;
+    --sg-hover: 28 30 41;
+    --sg-border: 32 34 45;
+    --sg-foreground: 247 248 250;
+    --sg-secondary: 168 175 191;
+    --sg-muted: 112 120 139;
+    --sg-accent: 102 92 255;
+    --sg-accent-muted: 118 109 255;
+    --sg-accent-soft: 33 32 54;
+    --sg-success: 32 201 151;
+    --sg-warning: 245 185 76;
+    --sg-danger: 240 106 120;
   }
 
   * {
@@ -42,7 +53,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    color-scheme: light;
   }
+  html.dark { color-scheme: dark; }
 
   body {
     @apply bg-[rgb(var(--sg-background))] text-[rgb(var(--sg-foreground))] antialiased;
@@ -71,8 +84,18 @@
 }
 
 @layer components {
+  /* Surfaces */
   .card {
-    @apply rounded-xl border bg-[rgb(var(--sg-card))] shadow-sm;
+    border-radius: var(--radius-card);
+    @apply border bg-[rgb(var(--sg-card))] shadow-sm;
+  }
+  .card-elevated {
+    border-radius: var(--radius-card);
+    @apply border bg-[rgb(var(--sg-elevated))];
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.05);
+  }
+  .dark .card-elevated {
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
   }
   .card-hover {
     @apply card transition-all duration-200;
@@ -81,8 +104,10 @@
     @apply shadow-md -translate-y-[1px];
   }
 
+  /* Buttons — 10px control radius, 150ms feedback */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sg-accent))]/30 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    border-radius: var(--radius-control);
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sg-accent))]/30 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
     --tw-ring-offset-color: rgb(var(--sg-background));
   }
   .btn-primary {
@@ -95,30 +120,41 @@
     @apply btn bg-transparent text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))] active:scale-[0.98];
   }
   .btn-danger {
-    @apply btn bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 active:scale-[0.98];
+    @apply btn border active:scale-[0.98];
+    background: rgb(var(--sg-danger) / 0.08);
+    color: rgb(var(--sg-danger));
+    border-color: rgb(var(--sg-danger) / 0.25);
   }
+  .btn-danger:hover { background: rgb(var(--sg-danger) / 0.14); }
   .btn-outline {
     @apply btn bg-transparent text-[rgb(var(--sg-foreground))] border hover:bg-[rgb(var(--sg-hover))] active:scale-[0.98];
     border-color: rgb(var(--sg-border));
   }
-  .btn-sm { @apply px-3 py-1.5 text-xs gap-1.5 rounded-md; }
-  .btn-lg { @apply px-6 py-3 text-sm gap-2 rounded-xl; }
+  .btn-sm { @apply px-3 py-1.5 text-xs gap-1.5; }
+  .btn-lg { @apply px-6 py-3 text-sm gap-2; }
 
   .input {
-    @apply w-full rounded-lg border bg-[rgb(var(--sg-card))] px-3.5 py-2.5 text-sm text-[rgb(var(--sg-foreground))] placeholder:text-[rgb(var(--sg-muted))] outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: var(--radius-control);
+    @apply w-full border bg-[rgb(var(--sg-card))] px-3.5 py-2.5 text-sm text-[rgb(var(--sg-foreground))] placeholder:text-[rgb(var(--sg-muted))] outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
     border-color: rgb(var(--sg-border));
   }
   .input:focus {
     border-color: rgb(var(--sg-accent) / 0.4);
     box-shadow: 0 0 0 3px rgb(var(--sg-accent) / 0.10);
   }
-  .input-error { @apply border-red-300; }
+  .input-error { border-color: rgb(var(--sg-danger) / 0.5); }
 
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border;
   }
   .badge-accent {
-    @apply badge bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20;
+    @apply badge;
+    background: rgb(var(--sg-accent) / 0.09);
+    color: rgb(var(--sg-accent));
+    border-color: rgb(var(--sg-accent) / 0.22);
+  }
+  .dark .badge-accent {
+    color: rgb(var(--sg-accent-muted));
   }
   .badge-muted {
     @apply badge bg-[rgb(var(--sg-surface-muted))] text-[rgb(var(--sg-secondary))] border-[rgb(var(--sg-border))];
@@ -128,8 +164,10 @@
     @apply flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors;
   }
   .nav-item-active {
-    @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300;
+    background: rgb(var(--sg-accent) / 0.09);
+    color: rgb(var(--sg-accent));
   }
+  .dark .nav-item-active { color: rgb(var(--sg-accent-muted)); }
   .nav-item-inactive {
     @apply text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))];
   }

@@ -60,7 +60,7 @@ export function Modal({
               ref={ref}
               initial={{ opacity: 0, scale: 0.98, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 8 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className={cn('w-full rounded-xl border bg-[rgb(var(--sg-card))] shadow-large', sizeCls, className)}
+              className={cn('w-full rounded-xl border bg-[rgb(var(--sg-elevated))] shadow-large', sizeCls, className)}
               role="dialog" aria-modal="true" aria-labelledby={title ? 'modal-title' : undefined}
             >
               {(title || showCloseButton) && (

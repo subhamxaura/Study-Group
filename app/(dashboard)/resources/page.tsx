@@ -1,14 +1,25 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { BookOpen, Bookmark, Search, Plus, ExternalLink, FileUp, Download, Paperclip } from 'lucide-react'
+import { BookOpen, Bookmark, Search, Plus, ExternalLink, FileUp, Download, Paperclip, FileText, Film, Link2, Image as ImageIcon, File } from 'lucide-react'
 import { Badge, Button, EmptyState, Input, Modal, Select, Textarea } from '@/components/ui'
+import { SkeletonResourceCard } from '@/components/ui/Skeleton'
 import { toast } from '@/components/ui/Toast'
 import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
 import type { ResourceItem } from '@/types'
 
 const TYPES = ['ALL', 'PDF', 'NOTE', 'LINK', 'VIDEO', 'IMAGE', 'DOCUMENT']
+
+/** Recognizable icon per resource type — no more truncated text tiles. */
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  PDF: FileText,
+  DOCUMENT: FileText,
+  NOTE: File,
+  LINK: Link2,
+  VIDEO: Film,
+  IMAGE: ImageIcon,
+}
 
 function formatBytes(n: number | null | undefined): string | null {
   if (!n) return null
@@ -184,7 +195,7 @@ export default function ResourcesPage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skeleton h-24 rounded-xl" />)}</div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <SkeletonResourceCard key={i} />)}</div>
       ) : resources.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -203,8 +214,8 @@ export default function ResourcesPage() {
             return (
               <div key={r.id} className="card-hover flex flex-col p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[rgb(var(--sg-surface-muted))] text-[10px] font-bold uppercase text-muted">
-                    {r.type.slice(0, 4)}
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[rgb(var(--sg-accent-soft))] text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]" aria-hidden="true">
+                    {(() => { const I = TYPE_ICONS[r.type] ?? File; return <I className="h-5 w-5" /> })()}
                   </span>
                   <button
                     onClick={() => toggleBookmark(r.id)}
@@ -217,7 +228,7 @@ export default function ResourcesPage() {
                 </div>
                 <p className="mt-2 line-clamp-1 text-sm font-semibold">{r.title}</p>
                 {r.description && <p className="mt-0.5 line-clamp-2 flex-1 text-xs text-secondary">{r.description}</p>}
-                {r.isFile && <Badge tone="muted" className="mt-2 w-fit"><Paperclip className="mr-1 inline h-2.5 w-2.5" /> file</Badge>}
+                <Badge tone="muted" className="mt-2 w-fit">{r.type.toLowerCase()}</Badge>
                 <div className="mt-3 flex items-center justify-between border-t pt-2.5 text-[10px] text-muted">
                   <span>{r.uploader.name}{r.group ? ` · ${r.group.name}` : ''}</span>
                   <span>

@@ -6,9 +6,9 @@
  */
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { FileText, Plus } from 'lucide-react'
+import { FileText, Plus, Clock } from 'lucide-react'
 import { Badge, EmptyState } from '@/components/ui'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { SkeletonNoteCard } from '@/components/ui/Skeleton'
 import { api } from '@/lib/client'
 import type { GroupSummary } from '@/types'
 
@@ -59,7 +59,13 @@ export default function NotesPage() {
   useEffect(() => { load() }, [load])
 
   if (loading) {
-    return <div className="section-container"><SkeletonList rows={6} /></div>
+    return (
+      <div className="section-container">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => <SkeletonNoteCard key={i} />)}
+        </div>
+      </div>
+    )
   }
 
   if (failed) {
@@ -111,14 +117,15 @@ export default function NotesPage() {
           {notes.map((n) => {
             const g = groups.find((x) => x.id === n.groupId)
             return (
-              <Link key={n.id} href={`/groups/${n.groupId}`} className="card-hover p-4">
+              <Link key={n.id} href={`/groups/${n.groupId}`} className="card-hover flex flex-col p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone="muted">{n.kind.replace('_', ' ').toLowerCase()}</Badge>
-                  <span className="text-[10px] text-muted">v{n.version}</span>
+                  <span className="text-[10px] font-medium text-muted">v{n.version}</span>
                 </div>
                 <p className="mt-2 line-clamp-1 text-sm font-semibold">{n.title}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-secondary">{n.content.slice(0, 120) || 'Empty note'}</p>
-                <p className="mt-2 text-[10px] text-muted">
+                <p className="mt-1 line-clamp-2 flex-1 text-xs leading-relaxed text-secondary">{n.content.slice(0, 120) || 'Empty note'}</p>
+                <p className="mt-3 flex items-center gap-1.5 border-t pt-2.5 text-[10px] text-muted">
+                  <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
                   {g ? `${g.name} · ` : ''}{n.author.name} · {new Date(n.updatedAt).toLocaleDateString()}
                 </p>
               </Link>

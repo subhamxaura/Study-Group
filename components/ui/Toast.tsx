@@ -111,7 +111,7 @@ export function ToastViewport() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="pointer-events-auto flex w-full items-center gap-2.5 rounded-xl border bg-[rgb(var(--sg-card))] py-2.5 pl-3.5 pr-2 shadow-large"
+            className="pointer-events-auto flex w-full items-center gap-2.5 rounded-xl border bg-[rgb(var(--sg-elevated))] py-2.5 pl-3.5 pr-2 shadow-large"
           >
             <span className="shrink-0">{ICONS[t.kind]}</span>
             <p className="min-w-0 flex-1 text-sm text-strong">{t.message}</p>

@@ -10,7 +10,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Plus, Pause, Play, LogOut, CheckCircle2, Radio } from 'lucide-react'
-import { Badge, Button, Input, Modal, Select, Textarea } from '@/components/ui'
+import Link from 'next/link'
+import { Badge, Button, Input, Modal, Select, Textarea, Avatar, AvatarGroup } from '@/components/ui'
 import { api } from '@/lib/client'
 import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
@@ -258,7 +259,19 @@ export function FocusRooms({ onRoomCompleted }: { onRoomCompleted?: (c: RoomComp
       {rooms === null ? (
         <div className="mt-3 space-y-2">{[0, 1].map((i) => <div key={i} className="skeleton h-12 rounded-lg" />)}</div>
       ) : rooms.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No active focus rooms right now. Create one and study alongside others.</p>
+        <div className="flex flex-col items-center py-8 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--sg-accent-soft))] text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]">
+            <Radio className="h-6 w-6" />
+          </span>
+          <p className="mt-3 text-sm font-medium">No live focus rooms right now</p>
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-secondary">
+            Start one and study alongside others — a shared timer makes it easier to stay in the chair.
+          </p>
+          <div className="mt-4 flex items-center gap-2">
+            <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Create focus room</Button>
+            <Link href="/discover" className="btn btn-secondary btn-sm">Discover groups</Link>
+          </div>
+        </div>
       ) : (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {rooms.slice(0, 4).map((room) => (
@@ -273,7 +286,13 @@ export function FocusRooms({ onRoomCompleted }: { onRoomCompleted?: (c: RoomComp
                 <Badge tone={room.status === 'PAUSED' ? 'warning' : 'success'}>{room.activeCount} studying</Badge>
               </div>
               <div className="mt-2.5 flex items-center justify-between">
-                <span className="text-xs text-muted">{room.durationMin} min · host {room.host.name}</span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <AvatarGroup
+                    people={room.participants.slice(0, 4).map((p) => ({ name: p.name, src: p.avatarUrl }))}
+                    max={4}
+                  />
+                  <span className="truncate text-xs text-muted">{room.durationMin} min · {room.activeCount} studying</span>
+                </div>
                 <Button size="sm" variant={room.isParticipant ? 'secondary' : 'primary'} onClick={() => openRoom(room.id)}>
                   {room.isParticipant ? 'Rejoin' : 'Join room'}
                 </Button>

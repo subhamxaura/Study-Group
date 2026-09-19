@@ -11,7 +11,7 @@ import { Avatar, Button, Badge, ToastViewport } from '@/components/ui'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { CommandPalette } from '@/components/shell/CommandPalette'
 import { NotificationCenter } from '@/components/shell/NotificationCenter'
-import { StudymatePanel } from '@/components/studymate/StudymatePanel'
+import { StudymatePanel, StudymateButton } from '@/components/studymate/StudymatePanel'
 import { useSession, useUIStore } from '@/lib/store'
 import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
@@ -173,8 +173,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-full flex-col">
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b px-3">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">S</span>
-          {!sidebarCollapsed && <span className="text-sm font-semibold">Study-Group</span>}
+          <BrandMark />
+          {!sidebarCollapsed && <span className="text-sm font-semibold tracking-tight">Study-Group</span>}
         </Link>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -313,6 +313,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             </div>
             <div className="flex items-center gap-1.5">
+              <StudymateButton />
               <Link href="/groups?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
                 <Plus className="h-4 w-4" /> Create group
               </Link>
@@ -377,5 +378,19 @@ function PanelLeft({ className }: { className?: string }) {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M9 3v18" />
     </svg>
+  )
+}
+
+/** Brand icon mark — two joined figures forming an S, the collaboration identity. */
+function BrandMark() {
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-gradient-to-br from-[rgb(var(--sg-accent))] to-[rgb(var(--sg-accent-muted))] text-white shadow-sm" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <circle cx="8" cy="7" r="2.6" />
+        <path d="M3.5 18.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" />
+        <circle cx="16.5" cy="9" r="2.1" />
+        <path d="M13.5 18.5c.4-2.2 2.3-3.6 4.5-3.6 1.4 0 2.7.6 3.5 1.6" />
+      </svg>
+    </span>
   )
 }

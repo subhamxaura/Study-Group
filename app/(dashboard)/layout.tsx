@@ -91,13 +91,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const totalUnread = myGroups.reduce((sum, g) => sum + (g.unreadCount ?? 0), 0)
   // Contextual sidebar badges: overdue task count and "today" session dot.
   const badgeState = {
-    overdue: overdueCount,
+    // Hide the overdue badge entirely when there is nothing overdue (no red "0")
+    overdue: overdueCount > 0 ? overdueCount : null,
     nextSession:
       nextSession && new Date(nextSession.startsAt).toDateString() === new Date().toDateString()
         ? 'today'
         : null,
     unread: totalUnread > 0 ? totalUnread : null,
-  } as { overdue: number; nextSession: string | null; unread: number | null }
+  } as { overdue: number | null; nextSession: string | null; unread: number | null }
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => { init() }, [init])
@@ -124,8 +125,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((d) => { if (alive) setNotifCount(d.unreadCount) })
       .catch(() => {})
     // Contextual nav badges — real data, refreshed per navigation (tiny payloads)
-    api.get<{ tasks: Array<{ id: string }> }>('/api/tasks?scope=mine&due=overdue&pageSize=1')
-      .then((d) => { if (alive) setOverdueCount(d.tasks.length) })
+    // The overdue badge reads the aggregate `total`, not the (min-clamped) rows.
+    api.get<{ total: number }>('/api/tasks?scope=mine&due=overdue&pageSize=10')
+      .then((d) => { if (alive) setOverdueCount(d.total) })
       .catch(() => {})
     api.get<{ sessions: Array<{ id: string; startsAt: string }> }>('/api/sessions?limit=1')
       .then((d) => { setNextSession(d.sessions[0] ?? null) })

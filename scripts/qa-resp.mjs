@@ -12,8 +12,9 @@ const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const PORT = 9333
 const BASE = process.env.QA_BASE_URL || 'http://localhost:3210'
 const HOST = new URL(BASE).hostname
-const WIDTHS = [1440, 768, 390]
-const PAGES = ['/dashboard', '/focus', '/tasks', '/calendar', '/discover', '/messages', '/groups', '/resources', '/notes', '/analytics', '/my-study', '/profile', '/settings']
+const WIDTHS = (process.env.QA_WIDTHS || '1440,768,390').split(',').map(Number)
+const PAGES = (process.env.QA_PAGES || '/dashboard,/focus,/tasks,/calendar,/discover,/messages,/groups,/resources,/notes,/analytics,/my-study,/profile,/settings').split(',')
+const SETTLE_MS = Number(process.env.QA_SETTLE || 1700)
 
 const tmp = process.env.TEMP || '/tmp'
 mkdirSync('.next/qa-shots', { recursive: true })
@@ -76,7 +77,7 @@ for (const width of WIDTHS) {
   for (const path of PAGES) {
     await send('Page.enable')
     await send('Page.navigate', { url: BASE + path })
-    await sleep(1700) // allow client fetches to settle
+    await sleep(SETTLE_MS) // allow client fetches to settle
     const expr = `(() => {
       const d = document.documentElement
       const overflow = d.scrollWidth - d.clientWidth

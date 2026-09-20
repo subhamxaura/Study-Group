@@ -187,6 +187,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </div>
 
+      {/* Mobile-only search entry — the header pill hides below md, so the
+          drawer carries the affordance. One tap opens the command palette. */}
+      <button
+        onClick={() => { setMobileOpen(false); setCommandOpen(true) }}
+        className="mx-2 mt-2 flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg border bg-[rgb(var(--sg-background))] px-3 text-sm text-muted transition-colors hover:border-[rgb(var(--sg-accent))]/40 lg:hidden"
+        aria-label="Search"
+      >
+        <Search className="h-4 w-4" />
+        <span>Search groups, tasks, sessions…</span>
+      </button>
+
       <div className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
         <nav className="space-y-3" aria-label="Primary">
           {navSections.map((section) => (
@@ -312,6 +323,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Search className="h-4 w-4" />
                 <span>Search…</span>
                 <kbd className="ml-4 rounded bg-[rgb(var(--sg-hover))] px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+              </button>
+              {/* Compact search affordance on small screens — one tap to the palette */}
+              <button
+                onClick={() => setCommandOpen(true)}
+                className="rounded-md p-3 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))] md:hidden"
+                aria-label="Search"
+              >
+                <Search className="h-5 w-5" />
               </button>
             </div>
             <div className="flex items-center gap-1.5">

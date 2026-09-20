@@ -35,7 +35,9 @@ function matchesView(t: TaskItem, view: View): boolean {
 
 // Parse trailing natural dates from quick-add text: "...tomorrow",
 // "...next week", "...on monday". Returns { title, dueDate } — date is an
-// end-of-day ISO so the task stays "due today" all day.
+// end-of-day ISO so the task stays "due today" all day. When no phrase
+// matches, dueDate is null and quickAdd defaults it to today so the task
+// always shows up in the default Today view (never silently unreachable).
 function parseQuickTask(raw: string): { title: string; dueDate: string | null } {
   const text = raw.trim()
   const endOfDay = (d: Date) => { const c = new Date(d); c.setHours(23, 59, 59, 999); return c }
@@ -135,10 +137,13 @@ export default function TasksPage() {
     if (!text || quickAdding) return
     setQuickAdding(true)
     const { title, dueDate } = parseQuickTask(text)
+    // No date phrase → due today (end of day). Every view filters on due
+    // date, so an undated quick-add would be unreachable in the UI.
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
     try {
       const d = await api.post<{ task: TaskItem }>('/api/tasks', {
         title,
-        dueDate,
+        dueDate: dueDate ?? todayEnd.toISOString(),
         priority: 'MEDIUM',
         groupId: null,
       })

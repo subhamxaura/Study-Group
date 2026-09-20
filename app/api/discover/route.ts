@@ -63,9 +63,9 @@ export const GET = withUser(async (user) => {
 
   const messageCountByGroup = new Map(counts.map((c) => [c.groupId, c._count.groupId]))
 
-  // Fill trending candidates (exclude ones I'm already in is handled by notIn for non-members;
-  // trendingRaw may include my groups — filter client-side data accordingly)
-  const trendingIds = trendingRaw.map((t) => t.groupId)
+  // Fill trending candidates — exclude groups I'm already in, same as every
+  // other section (my own groups are not join recommendations).
+  const trendingIds = trendingRaw.map((t) => t.groupId).filter((id) => !myGroupIds.includes(id))
   const trendingGroups = trendingIds.length
     ? await prisma.group.findMany({
         where: { id: { in: trendingIds }, isPublic: true },

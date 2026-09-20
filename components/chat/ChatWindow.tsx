@@ -67,8 +67,21 @@ function renderContent(content: string, members: Array<{ id: string; name: strin
   )
 }
 
-export function ChatWindow({ groupId, members = [], onOnlineChange }: ChatWindowProps) {
+export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: ChatWindowProps) {
   const user = useSession((s) => s.user)
+  // Mention autocomplete + @Name rendering need the member list. Callers may
+  // pass it; when they don't, fetch it here so mentions never silently degrade
+  // to plain text.
+  const [fetchedMembers, setFetchedMembers] = useState<Array<{ user: { id: string; name: string; avatarUrl: string | null } }>>([])
+  useEffect(() => {
+    if (membersProp) return
+    let alive = true
+    api.get<{ members: Array<{ user: { id: string; name: string; avatarUrl: string | null } }> }>(`/api/groups/${groupId}/members`)
+      .then((d) => { if (alive) setFetchedMembers(d.members ?? []) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [groupId, membersProp])
+  const members = membersProp ?? fetchedMembers
   const messages = useChatStore((s) => s.messages)
   const typing = useChatStore((s) => s.typing)
   const online = useChatStore((s) => s.online)

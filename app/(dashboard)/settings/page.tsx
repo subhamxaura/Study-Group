@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { Bell, Palette, LogOut, ShieldCheck, User } from 'lucide-react'
 import { Button, Card, Input } from '@/components/ui'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useSession } from '@/lib/store'
 import { useRouter } from 'next/navigation'
 
@@ -104,13 +103,13 @@ export default function SettingsPage() {
         </p>
       </SectionCard>
 
-      <SectionCard icon={Palette} title="Appearance" desc="Choose how Study-Group looks on this device.">
+      <SectionCard icon={Palette} title="Appearance" desc="Study-Group uses the dark Quad theme.">
         <div className="flex items-center justify-between rounded-lg border p-3">
           <div>
-            <p className="text-sm font-medium">Dark mode</p>
-            <p className="text-xs text-muted">Follows your system setting by default; the choice is saved locally.</p>
+            <p className="text-sm font-medium">Dark theme</p>
+            <p className="text-xs text-muted">Always on — there is no light mode.</p>
           </div>
-          <ThemeToggle />
+          <span className="rounded-full border border-[rgb(var(--sg-border))] px-2.5 py-1 text-xs font-medium text-secondary">Always on</span>
         </div>
       </SectionCard>
 

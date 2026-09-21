@@ -7,8 +7,6 @@ import {
   ArrowRight, Users, MessageCircle, Calendar, BookOpen, Search, BarChart3,
   Layers, Clock, Shield, Timer, CheckSquare, Sparkles,
 } from 'lucide-react'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
-
 const howItWorks = [
   { n: '01', title: 'Find or create a group', desc: 'Browse by subject, university or semester. Join in one tap or start your own.' },
   { n: '02', title: 'Plan and study together', desc: 'Schedule sessions, split tasks, discuss difficult topics and share resources in one place.' },
@@ -156,7 +154,6 @@ export default function HomePage() {
             <a href="#focus" className="transition-colors hover:text-[rgb(var(--sg-foreground))]">Focus mode</a>
           </nav>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <Link href="/login" className="btn btn-ghost btn-sm hidden sm:inline-flex">Sign in</Link>
             <Link href="/register" className="btn btn-primary btn-sm">Get started <ArrowRight className="h-4 w-4" /></Link>
           </div>

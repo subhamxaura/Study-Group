@@ -26,22 +26,24 @@
   }
 
   .dark {
-    /* Dark — deep charcoal with layered surfaces, intentionally designed */
-    --sg-background: 9 10 15;
-    --sg-surface: 17 19 26;
-    --sg-surface-muted: 23 25 35;
-    --sg-card: 17 19 26;
-    --sg-elevated: 23 25 35;
-    --sg-hover: 28 30 41;
-    --sg-border: 32 34 45;
-    --sg-foreground: 247 248 250;
-    --sg-secondary: 168 175 191;
-    --sg-muted: 112 120 139;
-    --sg-accent: 102 92 255;
-    --sg-accent-muted: 118 109 255;
-    --sg-accent-soft: 33 32 54;
-    --sg-success: 32 201 151;
-    --sg-warning: 245 185 76;
+    /* Dark — Quad design tokens (#08080F base, #5B8DEF accent, #A78BFA violet).
+       Light mode above is untouched. */
+    --sg-background: 8 8 15;
+    --sg-surface: 15 15 26;
+    --sg-surface-muted: 18 18 30;
+    --sg-card: 15 15 26;
+    --sg-elevated: 18 18 30;
+    --sg-hover: 24 25 42;
+    --sg-border: 33 34 52;
+    --sg-foreground: 241 241 245;
+    --sg-secondary: 158 158 180;
+    --sg-muted: 107 107 128;
+    --sg-accent: 91 141 239;
+    --sg-accent-muted: 138 168 245;
+    --sg-accent-soft: 91 141 239;
+    --sg-violet: 167 139 250;
+    --sg-success: 52 211 153;
+    --sg-warning: 251 191 36;
     --sg-danger: 240 106 120;
   }
 
@@ -63,6 +65,7 @@
   }
 
   ::selection { background: rgb(var(--sg-accent) / 0.14); }
+  .dark ::selection { background: rgba(91,141,239,0.32); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgb(var(--sg-border)); border-radius: 99px; }
@@ -185,4 +188,180 @@
   .divider { @apply border-t border-[rgb(var(--sg-border))]; }
   .text-muted { @apply text-[rgb(var(--sg-muted))]; }
   .text-secondary { @apply text-[rgb(var(--sg-secondary))]; }
+
+  /* Quad — display serif (Fraunces via next/font). Body stays Inter. */
+  .font-display { font-family: var(--font-fraunces), "Fraunces", Georgia, serif; }
+  body { font-family: var(--font-inter), "Inter", system-ui, sans-serif; }
+
+  /* Quad structural primitives — layout only, theme-agnostic */
+  .quad-hero { position: relative; overflow: hidden; border-radius: 18px; padding: 26px 26px 22px; margin-top: 6px; }
+  .quad-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; position: relative; }
+  .quad-stat { border-radius: 14px; padding: 16px 18px; }
+  .quad-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .quad-stat-label { font-size: 12.5px; font-weight: 500; }
+  .quad-stat-delta { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 99px; border: 1px solid; }
+  .quad-stat-value { font-family: var(--font-fraunces), "Fraunces", Georgia, serif; font-size: 30px; letter-spacing: -0.02em; margin-top: 6px; line-height: 1; }
+  .quad-stat-value small { font-size: 15px; font-family: var(--font-inter), "Inter", sans-serif; font-weight: 500; }
+  .quad-stat-sub { font-size: 12px; margin-top: 6px; }
+  .quad-columns { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+  .quad-panel { border-radius: 14px; padding: 18px; }
+  .quad-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .quad-panel-head h2 { font-family: var(--font-fraunces), "Fraunces", Georgia, serif; font-weight: 500; font-size: 18px; letter-spacing: -0.01em; }
+  .quad-panel-head a { font-size: 12.5px; font-weight: 500; }
+  .quad-panel-head a:hover { text-decoration: underline; }
+  .quad-panel-desc { font-size: 12.5px; margin-bottom: 12px; }
+  .quad-session { display: grid; grid-template-columns: 52px 1fr; gap: 14px; border-radius: 14px; padding: 14px; margin-top: 12px; transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease; will-change: transform; }
+  .quad-date-block { width: 52px; height: 58px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+  .quad-date-block b { font-size: 17px; line-height: 1; }
+  .quad-date-block span { font-size: 11px; font-weight: 600; }
+  .quad-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; }
+  .quad-meta svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; opacity: 0.8; }
+  .quad-session-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .quad-stack { display: flex; }
+  .quad-tag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px; border: 1px solid; }
+  .quad-join { margin-left: auto; font-size: 12.5px; font-weight: 600; border-radius: 8px; padding: 6px 12px; border: 1px solid; }
+  .quad-progress-list { margin-top: 6px; display: grid; gap: 12px; }
+  .quad-prow { border-radius: 12px; padding: 12px 14px; }
+  .quad-prow-top { display: flex; align-items: center; gap: 10px; }
+  .quad-prow-top strong { font-size: 13px; font-weight: 600; }
+  .quad-prow-top .pct { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .quad-bar { height: 6px; border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .quad-bar > i { display: block; height: 100%; width: 0; border-radius: 99px; transition: width 1100ms cubic-bezier(0.22,1,0.36,1); will-change: transform; }
+  .quad-prow.loaded .quad-bar > i { width: var(--w); }
+  .quad-prow-sub { font-size: 12px; margin-top: 8px; }
+  .quad-right-col { display: grid; gap: 18px; align-content: start; }
+  .quad-task { display: flex; gap: 11px; align-items: flex-start; padding: 11px 4px; }
+  .quad-check { width: 19px; height: 19px; border-radius: 6px; border: 1.5px solid; display: grid; place-items: center; flex: none; margin-top: 2px; background: transparent; transition: background 160ms ease, border-color 160ms ease; }
+  .quad-check svg { width: 12px; height: 12px; opacity: 0; transform: scale(0.6); transition: opacity 160ms ease, transform 160ms ease; }
+  .quad-task.done .quad-check svg { opacity: 1; transform: scale(1); }
+  .quad-member { display: flex; gap: 12px; align-items: center; padding: 11px 4px; }
+  .quad-msg { display: flex; gap: 11px; padding: 11px 4px; }
+  .quad-res { display: flex; gap: 12px; align-items: center; padding: 10px 4px; }
+  .quad-file-ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; border: 1px solid; }
+  .quad-foot-note { font-size: 12px; margin-top: 18px; }
+  .quad-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .quad-particles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .quad-particles i { position: absolute; bottom: -10px; border-radius: 50%; background: #8FA9F5; will-change: transform, opacity; }
+  .quad-online-line { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12.5px; }
+  .quad-green-dot { width: 8px; height: 8px; border-radius: 50%; background: #34D399; box-shadow: 0 0 0 4px rgba(52,211,153,0.15); will-change: transform, opacity; }
+}
+
+/* Quad dark theme colors — light mode keeps existing sg tokens */
+.dark .quad-body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(900px 500px at 75% -10%, rgba(91,141,239,0.07), transparent 60%),
+    radial-gradient(700px 500px at 100% 30%, rgba(167,139,250,0.05), transparent 60%);
+}
+.dark .quad-mesh {
+  position: absolute; inset: 0; z-index: -1; opacity: 0.15;
+  background:
+    radial-gradient(220px 180px at 20% 15%, #5B8DEF, transparent 70%),
+    radial-gradient(260px 200px at 85% 30%, #A78BFA, transparent 70%),
+    radial-gradient(240px 220px at 40% 85%, #2B4B9B, transparent 70%),
+    radial-gradient(200px 180px at 90% 90%, #5B8DEF, transparent 70%);
+  background-size: 220% 220%, 200% 200%, 220% 220%, 200% 200%;
+  will-change: transform, opacity;
+}
+.dark .quad-hero { border: 1px solid rgba(255,255,255,0.07); background: linear-gradient(180deg, #101020, #0C0C17 70%); }
+.dark .quad-hero h1 { font-family: var(--font-fraunces), "Fraunces", Georgia, serif; font-weight: 500; font-size: 30px; letter-spacing: -0.02em; line-height: 1.15; }
+.dark .quad-hero h1 em { font-style: italic; color: #A78BFA; }
+.dark .quad-stat { background: rgba(15,15,26,0.72); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(6px); }
+.dark .quad-stat-label { color: #9E9EB4; }
+.dark .quad-stat-value small { color: #9E9EB4; }
+.dark .quad-stat-sub { color: #9E9EB4; }
+.dark .quad-delta-up { color: #7EE2B0; background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.22); }
+.dark .quad-delta-v { color: #C9B8FF; background: rgba(167,139,250,0.13); border-color: rgba(167,139,250,0.26); }
+.dark .quad-delta-b { color: #9DB9F5; background: rgba(91,141,239,0.12); border-color: rgba(91,141,239,0.26); }
+.dark .quad-panel { background: #0F0F1A; border: 1px solid rgba(255,255,255,0.07); }
+.dark .quad-panel-head a { color: #9DB9F5; }
+.dark .quad-panel-desc { color: #9E9EB4; }
+.dark .quad-session { border: 1px solid rgba(255,255,255,0.07); background: #12121E; }
+.dark .quad-session:hover { box-shadow: 0 0 0 1px #5B8DEF, 0 8px 32px rgba(91,141,239,0.12); border-color: transparent; }
+.dark .quad-date-block { background: #141427; border: 1px solid rgba(255,255,255,0.06); }
+.dark .quad-date-block span { color: #9E9EB4; }
+.dark .quad-meta { color: #9E9EB4; }
+.dark .quad-tag-confirm { color: #7EE2B0; background: rgba(52,211,153,0.09); border-color: rgba(52,211,153,0.25); }
+.dark .quad-tag-soon { color: #9DB9F5; background: rgba(91,141,239,0.1); border-color: rgba(91,141,239,0.28); }
+.dark .quad-tag-violet { color: #C9B8FF; background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.28); }
+.dark .quad-join { color: #081026; background: #E8E8EF; border-color: rgba(255,255,255,0.2); }
+.dark .quad-join-ghost { background: transparent; color: #F1F1F5; border: 1px solid rgba(255,255,255,0.12); }
+.dark .quad-join:hover, .dark .quad-join-ghost:hover { border-color: #5B8DEF; }
+.dark .quad-prow { background: #12121E; border: 1px solid rgba(255,255,255,0.07); }
+.dark .quad-prow-top .pct, .dark .quad-prow-sub { color: #9E9EB4; }
+.dark .quad-bar { background: rgba(255,255,255,0.07); }
+.dark .quad-bar > i { background: linear-gradient(90deg, #5B8DEF, #8AA8F5); }
+.dark .quad-bar-v > i, .dark .quad-bar.v > i { background: linear-gradient(90deg, #7C5CE0, #A78BFA); }
+.dark .quad-bar-g > i, .dark .quad-bar.g > i { background: linear-gradient(90deg, #1F9E75, #34D399); }
+.dark .quad-bar-a > i, .dark .quad-bar.a > i { background: linear-gradient(90deg, #C98A1B, #FBBF24); }
+.dark .quad-task { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dark .quad-task:last-child { border-bottom: none; }
+.dark .quad-check { border-color: rgba(255,255,255,0.22); }
+.dark .quad-task.done .quad-check { background: #5B8DEF; border-color: #5B8DEF; }
+.dark .quad-task.done strong { color: #9E9EB4; text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.3); }
+.dark .quad-member { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dark .quad-member:last-child { border-bottom: none; }
+.dark .quad-status-dot { background: #34D399; border: 2.5px solid #0F0F1A; }
+.dark .quad-msg { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dark .quad-msg:last-child { border-bottom: none; }
+.dark .quad-res { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dark .quad-res:last-child { border-bottom: none; }
+.dark .quad-file-pdf { background: rgba(248,113,113,0.1); color: #FCA5A5; border-color: rgba(248,113,113,0.22); }
+.dark .quad-file-code { background: rgba(91,141,239,0.1); color: #9DB9F5; border-color: rgba(91,141,239,0.25); }
+.dark .quad-file-note { background: rgba(167,139,250,0.1); color: #C9B8FF; border-color: rgba(167,139,250,0.25); }
+.dark .quad-file-sheet { background: rgba(52,211,153,0.09); color: #7EE2B0; border-color: rgba(52,211,153,0.22); }
+.dark .quad-foot-note { color: #6B6B80; }
+.dark .quad-dot-b { background: #5B8DEF; box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
+.dark .quad-dot-v { background: #A78BFA; box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
+.dark .quad-dot-a { background: #FBBF24; box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
+.dark .quad-dot-g { background: #34D399; box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
+.dark .quad-avatar-sa { background: linear-gradient(135deg, #3B5BC0, #7A6FF0); }
+.dark .quad-avatar-ap { background: linear-gradient(135deg, #2F6B5B, #34D399); }
+.dark .quad-avatar-jk { background: linear-gradient(135deg, #7A4A2E, #FBBF24); }
+.dark .quad-avatar-mr { background: linear-gradient(135deg, #5B4A8A, #A78BFA); }
+.dark .quad-avatar-lt { background: linear-gradient(135deg, #3A4A5E, #5B8DEF); }
+
+/* Quad sidebar + buttons + nav (dark) */
+.dark .quad-brand-mark { background: linear-gradient(135deg, #2A3F7A, #5B8DEF 65%, #A78BFA); box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset; }
+.dark .btn-primary { background: #5B8DEF; color: #081026; border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 6px 22px rgba(91,141,239,0.28); }
+.dark .btn-primary:hover { filter: brightness(1.07); background: #5B8DEF; }
+.dark .btn-primary:active { transform: translateY(1px); }
+.dark .quad-nav-active { color: #F1F1F5 !important; background: transparent !important; border-left-color: #5B8DEF !important; }
+.dark .quad-nav-active svg { color: #5B8DEF !important; }
+.dark .quad-card-border { border-color: rgba(255,255,255,0.07) !important; }
+.dark .quad-icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: #0F0F1A; color: #9E9EB4; }
+.dark .quad-icon-btn:hover { color: #F1F1F5; border-color: rgba(255,255,255,0.14); }
+
+/* Quad entrance + ambient motion */
+@media (prefers-reduced-motion: no-preference) {
+  .dark .quad-mesh { animation: quadMeshShift 18s ease-in-out infinite alternate; }
+  @keyframes quadMeshShift {
+    0% { background-position: 0% 0%, 100% 20%, 30% 100%, 90% 90%; transform: scale(1); }
+    50% { background-position: 30% 30%, 70% 50%, 60% 70%, 40% 60%; transform: scale(1.06); }
+    100% { background-position: 80% 10%, 20% 80%, 90% 30%, 10% 100%; transform: scale(1.02); }
+  }
+  .dark .quad-pulse, .dark .quad-green-dot, .dark .quad-status-dot { animation: quadPulseDot 2.2s ease-in-out infinite; }
+  @keyframes quadPulseDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.55); opacity: 0.55; } }
+  .quad-particles i { animation: quadDriftUp linear infinite; opacity: 0; }
+  @keyframes quadDriftUp { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 0.55; } 70% { opacity: 0.35; } 100% { transform: translateY(-260px); opacity: 0; } }
+  .quad-anim-in { opacity: 0; animation: quadRiseIn 620ms cubic-bezier(0.22,1,0.36,1) forwards; will-change: transform, opacity; }
+  .quad-d0 { animation-delay: 0ms; } .quad-d1 { animation-delay: 100ms; }
+  .quad-d2 { animation-delay: 200ms; } .quad-d3 { animation-delay: 300ms; }
+  .quad-d4 { animation-delay: 400ms; }
+  @keyframes quadRiseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quad-anim-in { opacity: 1; }
+  .quad-prow .quad-bar > i { width: var(--w); }
+}
+
+/* Quad responsive */
+@media (max-width: 1100px) {
+  .quad-columns { grid-template-columns: 1fr; }
+  .quad-right-col { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+@media (max-width: 860px) {
+  .quad-stats { grid-template-columns: 1fr; }
+  .quad-hero h1, .dark .quad-hero h1 { font-size: 25px; }
+  .quad-right-col { grid-template-columns: 1fr; }
 }

@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
+import { Fraunces, Inter } from 'next/font/google'
 import './globals.css'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
+const fraunces = Fraunces({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-fraunces', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Study-Group — Learn together, in one workspace.',
@@ -14,11 +18,11 @@ const themeInit = `(function(){try{var t=localStorage.getItem('sg-theme');if(!t)
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${fraunces.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
-      <body className="min-h-screen bg-[rgb(var(--sg-background))] font-sans text-[rgb(var(--sg-foreground))] antialiased">
+      <body className="quad-body min-h-screen bg-[rgb(var(--sg-background))] font-sans text-[rgb(var(--sg-foreground))] antialiased">
         {children}
       </body>
     </html>

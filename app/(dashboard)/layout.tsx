@@ -171,12 +171,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
 
+  const dotClass = ['quad-dot-b', 'quad-dot-v', 'quad-dot-a', 'quad-dot-g']
+  const initialsOf = (n: string) => n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+  const avatarTone = (n: string) => {
+    const tones = ['quad-avatar-sa', 'quad-avatar-ap', 'quad-avatar-jk', 'quad-avatar-mr', 'quad-avatar-lt']
+    let h = 0
+    for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0
+    return tones[h % tones.length]
+  }
+
   const sidebar = (
-    <div className="flex h-full flex-col">
-      <div className="flex h-[60px] shrink-0 items-center justify-between border-b px-3">
+    <div className="relative isolate flex h-full flex-col overflow-hidden">
+      {/* Quad design mesh — visual only */}
+      <div className="quad-mesh hidden dark:block" aria-hidden="true" />
+      <div className="flex shrink-0 items-center justify-between border-b px-[18px] pb-[18px] pt-[20px]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <BrandMark />
-          {!sidebarCollapsed && <span className="text-sm font-semibold tracking-tight">Study-Group</span>}
+          {!sidebarCollapsed && (
+            <span className="leading-tight">
+              <span className="block text-[14.5px] font-semibold tracking-[-0.01em]">Study-Group</span>
+              <span className="block text-[11.5px] font-normal text-muted">{user.name.split(' ')[0]} · Study workspace</span>
+            </span>
+          )}
         </Link>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -198,31 +214,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <span>Search groups, tasks, sessions…</span>
       </button>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+      <div className="flex-1 space-y-2 overflow-y-auto py-[14px]">
         <nav className="space-y-3" aria-label="Primary">
           {navSections.map((section) => (
             <div key={section.label}>
               {!sidebarCollapsed && (
-                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">{section.label}</p>
+                <p className="px-[18px] pb-2 text-[11.5px] font-medium text-muted">{section.label}</p>
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-0">
                 {section.items.map((item) => {
                   const badgeValue = item.badge === 'overdue' ? badgeState.overdue : item.badge === 'nextSession' ? badgeState.nextSession : item.badge === 'unread' ? badgeState.unread : null
                   return (
                     <Link
                       key={item.label} href={item.href}
-                      className={cn('nav-item', isActive(item.href) ? 'nav-item-active' : 'nav-item-inactive')}
+                      className={cn(
+                        'nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px] dark:text-[13.5px] dark:font-medium',
+                        isActive(item.href) ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive dark:hover:bg-white/[0.03]',
+                      )}
                       title={sidebarCollapsed ? item.label : undefined}
                     >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0 dark:h-[16px] dark:w-[16px]" />
                       {!sidebarCollapsed && <span>{item.label}</span>}
                       {!sidebarCollapsed && badgeValue !== null && (
-                        <span
-                          className={cn(
-                            'ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
-                            item.badge === 'overdue' ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
-                          )}
-                        >
+                        <span className="ml-auto rounded-full border border-[rgb(var(--sg-border))] bg-white/[0.07] px-[7px] py-px text-[11px] text-muted dark:border-white/[0.06]">
                           {badgeValue}
                         </span>
                       )}
@@ -234,43 +248,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        {!sidebarCollapsed && myGroups.length > 0 && (
-          <div className="border-t pt-3">
-            <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">My groups</p>
-            <div className="space-y-0.5">
-              {myGroups.slice(0, 6).map((g) => (
+        {!sidebarCollapsed && (
+          <div className="mt-2 border-t pt-[10px] dark:border-white/[0.06]">
+            <p className="px-[18px] pb-2 text-[11.5px] font-medium text-muted">Groups</p>
+            <div className="space-y-0">
+              {myGroups.slice(0, 6).map((g, i) => (
                 <Link
                   key={g.id} href={`/groups/${g.id}`}
                   className={cn(
-                    'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors',
-                    pathname.startsWith(`/groups/${g.id}`) ? 'nav-item-active' : 'text-secondary hover:bg-[rgb(var(--sg-hover))]'
+                    'flex items-center gap-2.5 border-l-2 border-transparent px-[18px] py-[7px] text-[13px] transition-colors dark:rounded-none',
+                    pathname.startsWith(`/groups/${g.id}`) ? 'nav-item-active dark:quad-nav-active' : 'text-secondary hover:bg-[rgb(var(--sg-hover))] dark:text-[#9E9EB4] dark:hover:bg-white/[0.03] dark:hover:text-[#F1F1F5]'
                   )}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-[10px] font-bold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
-                    {g.name[0]}
-                  </span>
-                  <span className="truncate">{g.name}</span>
+                  <span className={cn('quad-dot', dotClass[i % dotClass.length])} aria-hidden="true" />
+                  <span className="truncate font-normal not-italic">{g.name}</span>
+                  <span className="ml-auto text-[11px] text-muted">{g.memberCount}</span>
                   {!!g.unreadCount && (
-                    <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-indigo-500" aria-label={`${g.unreadCount} unread messages`} />
+                    <span className="quad-pulse h-2 w-2 shrink-0 rounded-full bg-[#5B8DEF]" aria-label={`${g.unreadCount} unread messages`} />
                   )}
                 </Link>
               ))}
+              {myGroups.length === 0 && (
+                <Link href="/discover" className="block px-[18px] py-[7px] text-[13px] text-muted hover:text-[rgb(var(--sg-foreground))]">
+                  Discover groups…
+                </Link>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      <div className="shrink-0 space-y-0.5 border-t px-2 py-2">
-        <Link href="/profile" className={cn('nav-item', isActive('/profile') ? 'nav-item-active' : 'nav-item-inactive')} title="Profile">
+      <div className="shrink-0 border-t px-2 py-2 dark:border-white/[0.06]">
+        {/* Quad user block — real user, links to profile (visual only, no logic change) */}
+        {!sidebarCollapsed && (
+          <Link href="/profile" className="mt-auto flex items-center gap-2.5 px-[8px] pb-2 pt-[14px]">
+            <span className={cn('grid h-8 w-8 flex-none place-items-center rounded-full border border-white/20 text-[12px] font-semibold text-white', avatarTone(user.name))} aria-hidden="true">
+              {initialsOf(user.name)}
+            </span>
+            <span className="leading-tight">
+              <span className="block text-[13px] font-semibold leading-[1.3]">{user.name.split(' ')[0]}</span>
+              <span className="block text-[11.5px] text-muted">View profile</span>
+            </span>
+          </Link>
+        )}
+        <Link href="/profile" className={cn('nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]', isActive('/profile') ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive')} title="Profile">
           <Avatar name={user.name} src={user.avatarUrl} size="xs" />
           {!sidebarCollapsed && <span className="truncate text-sm">Profile</span>}
         </Link>
-        <Link href="/settings" className={cn('nav-item', isActive('/settings') ? 'nav-item-active' : 'nav-item-inactive')}>
-          <Settings className="h-[18px] w-[18px]" />
+        <Link href="/settings" className={cn('nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]', isActive('/settings') ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive')}>
+          <Settings className="h-[18px] w-[18px] dark:h-[16px] dark:w-[16px]" />
           {!sidebarCollapsed && <span>Settings</span>}
         </Link>
-        <button onClick={handleLogout} className="nav-item nav-item-inactive w-full">
-          <LogOut className="h-[18px] w-[18px]" />
+        <button onClick={handleLogout} className="nav-item nav-item-inactive w-full border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]">
+          <LogOut className="h-[18px] w-[18px] dark:h-[16px] dark:w-[16px]" />
           {!sidebarCollapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -279,11 +309,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-[rgb(var(--sg-background))]">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — Quad: 220px, #0A0A14 in dark */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-card))] transition-all duration-200 lg:flex',
-          sidebarCollapsed ? 'w-[68px]' : 'w-60'
+          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-card))] transition-all duration-200 dark:border-white/[0.06] dark:bg-[#0A0A14] lg:flex',
+          sidebarCollapsed ? 'w-[68px]' : 'w-[220px]'
         )}
       >
         {sidebar}
@@ -307,22 +337,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </AnimatePresence>
 
-      {/* Main column */}
-      <div className={cn('flex min-h-screen w-full flex-col transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-60')}>
-        {/* Topbar */}
-        <header className="sticky top-0 z-20 border-b bg-[rgb(var(--sg-card))]/90 backdrop-blur">
-          <div className="flex h-[60px] items-center justify-between gap-3 px-4 pb-[env(safe-area-inset-bottom)] sm:px-6">
-            <div className="flex items-center gap-2">
+      {/* Main column — Quad: 0 28px 40px content padding lives on pages */}
+      <div className={cn('relative z-[1] flex min-h-screen w-full flex-col transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[220px]')}>
+        {/* Topbar — Quad: sticky gradient fade, 460px search, 36px icon-btn, primary New session */}
+        <header className="sticky top-0 z-20 border-b bg-[rgb(var(--sg-card))]/90 backdrop-blur dark:border-transparent dark:bg-gradient-to-b dark:from-[#08080F] dark:via-[#08080F]/85 dark:to-transparent">
+          <div className="flex min-h-[60px] items-center gap-[14px] px-4 py-[18px] pb-[env(safe-area-inset-bottom)] sm:px-7">
+            <div className="relative flex-1 md:max-w-[460px]">
               <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-muted hover:bg-[rgb(var(--sg-hover))] lg:hidden" aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setCommandOpen(true)}
-                className="hidden items-center gap-2 rounded-lg border bg-[rgb(var(--sg-background))] px-3 py-2 text-sm text-muted transition-colors hover:border-[rgb(var(--sg-accent))]/40 md:flex"
+                className="hidden w-full items-center gap-2 rounded-[10px] border bg-[rgb(var(--sg-background))] py-[9px] pl-[34px] pr-[40px] text-left text-[13.5px] text-muted transition-colors hover:border-[rgb(var(--sg-accent))]/40 dark:border-white/[0.07] dark:bg-[#0F0F1A] md:flex"
+                aria-label="Search sessions, notes, files"
               >
-                <Search className="h-4 w-4" />
-                <span>Search…</span>
-                <kbd className="ml-4 rounded bg-[rgb(var(--sg-hover))] px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+                <Search className="absolute left-3 h-[15px] w-[15px] text-muted" aria-hidden="true" />
+                <span>Search sessions, notes, files…</span>
+                <kbd className="absolute right-[10px] rounded-md border border-[rgb(var(--sg-border))] bg-white/[0.03] px-1.5 py-px font-sans text-[11px] dark:border-white/10">⌘K</kbd>
               </button>
               {/* Compact search affordance on small screens — one tap to the palette */}
               <button
@@ -333,18 +364,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Search className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-2.5">
               <StudymateButton />
-              <Link href="/groups?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
+              <Link href="/groups?create=1" className="btn btn-secondary btn-sm hidden xl:inline-flex">
                 <Plus className="h-4 w-4" /> Create group
               </Link>
+              <Link href="/calendar?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
+                New session
+              </Link>
               <NotificationCenter trigger={(
-                <button className="relative rounded-lg p-2 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))]" aria-label={`Notifications (${notifCount} unread)`}>
-                  <Bell className="h-[18px] w-[18px]" />
+                <button className="quad-icon-btn relative grid h-9 w-9 place-items-center rounded-[10px] text-muted transition-colors hover:text-[rgb(var(--sg-foreground))]" aria-label={`Notifications (${notifCount} unread)`}>
+                  <Bell className="h-[17px] w-[17px]" />
                   {notifCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                      {notifCount > 9 ? '9+' : notifCount}
-                    </span>
+                    <span className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-[#F87171] ring-2 ring-[#0F0F1A]" aria-hidden="true" />
                   )}
                 </button>
               )} onCountChange={setNotifCount} />
@@ -373,7 +405,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.label} href={item.href}
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition-colors',
-                  active ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted'
+                  active ? 'text-indigo-600 dark:text-[#8AA8F5]' : 'text-muted'
                 )}
               >
                 {item.label === 'Profile'
@@ -402,16 +434,11 @@ function PanelLeft({ className }: { className?: string }) {
   )
 }
 
-/** Brand icon mark — two joined figures forming an S, the collaboration identity. */
+/** Brand icon mark — Quad gradient tile with Q (visual only, same identity). */
 function BrandMark() {
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-gradient-to-br from-[rgb(var(--sg-accent))] to-[rgb(var(--sg-accent-muted))] text-white shadow-sm" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <circle cx="8" cy="7" r="2.6" />
-        <path d="M3.5 18.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" />
-        <circle cx="16.5" cy="9" r="2.1" />
-        <path d="M13.5 18.5c.4-2.2 2.3-3.6 4.5-3.6 1.4 0 2.7.6 3.5 1.6" />
-      </svg>
+    <span className="quad-brand-mark font-display grid h-[30px] w-[30px] flex-none place-items-center rounded-[9px] text-[16px] font-semibold text-white" aria-hidden="true">
+      Q
     </span>
   )
 }

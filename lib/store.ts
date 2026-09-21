@@ -49,31 +49,30 @@ interface UIState {
 }
 
 function getInitialTheme(): 'dark' | 'light' {
-  if (typeof window === 'undefined') return 'light'
-  const stored = window.localStorage.getItem('sg-theme')
-  if (stored === 'dark' || stored === 'light') return stored
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Single-theme app — dark only.
+  return 'dark'
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
-  theme: 'light',
+  theme: 'dark',
   sidebarCollapsed: false,
   commandOpen: false,
   notifOpen: false,
   studymateOpen: false,
   toggleTheme: () => {
-    const next = get().theme === 'dark' ? 'light' : 'dark'
-    set({ theme: next })
+    // Single-theme app — always dark.
+    set({ theme: 'dark' })
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('sg-theme', next)
-      document.documentElement.classList.toggle('dark', next === 'dark')
+      window.localStorage.setItem('sg-theme', 'dark')
+      document.documentElement.classList.add('dark')
     }
   },
-  setTheme: (theme) => {
-    set({ theme })
+  setTheme: () => {
+    // Single-theme app — always dark.
+    set({ theme: 'dark' })
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('sg-theme', theme)
-      document.documentElement.classList.toggle('dark', theme === 'dark')
+      window.localStorage.setItem('sg-theme', 'dark')
+      document.documentElement.classList.add('dark')
     }
   },
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),

@@ -13,12 +13,12 @@ export const metadata: Metadata = {
 
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 5 }
 
-// Inline theme bootstrap — prevents dark-mode flash before hydration.
-const themeInit = `(function(){try{var t=localStorage.getItem('sg-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`
+// Single-theme bootstrap — dark only. Locks the Quad theme before hydration.
+const themeInit = `(function(){try{localStorage.setItem('sg-theme','dark');document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`dark ${inter.variable} ${fraunces.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

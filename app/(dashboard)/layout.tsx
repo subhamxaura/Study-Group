@@ -8,7 +8,6 @@ import {
   CheckSquare, Timer, BarChart3, Bell, Settings, LogOut, Menu, X, Search, Plus, BookMarked, Brain,
 } from 'lucide-react'
 import { Avatar, Button, Badge, ToastViewport } from '@/components/ui'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { CommandPalette } from '@/components/shell/CommandPalette'
 import { NotificationCenter } from '@/components/shell/NotificationCenter'
 import { StudymatePanel, StudymateButton } from '@/components/studymate/StudymatePanel'
@@ -380,7 +379,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )}
                 </button>
               )} onCountChange={setNotifCount} />
-              <ThemeToggle />
               <Link
                 href="/profile"
                 className="ml-1 rounded-full ring-offset-2 transition-shadow hover:ring-2 hover:ring-[rgb(var(--sg-accent))]/30"

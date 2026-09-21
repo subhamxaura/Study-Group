@@ -55,7 +55,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    color-scheme: light;
+    color-scheme: dark;
   }
   html.dark { color-scheme: dark; }
 

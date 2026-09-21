@@ -16,6 +16,13 @@ export async function GET() {
     jwtSecret: Boolean(process.env.JWT_SECRET),
   }
 
+  // AI presence only — never values. Lets ops verify StudyMate readiness.
+  const ai = {
+    provider: process.env.AI_PROVIDER || 'openai',
+    configured: Boolean(process.env.OPENAI_API_KEY),
+    modelSet: Boolean(process.env.OPENAI_MODEL),
+  }
+
   let db: 'up' | 'down' = 'down'
   let migrations: 'applied' | 'pending' | 'unknown' = 'unknown'
 
@@ -39,7 +46,7 @@ export async function GET() {
 
   const healthy = db === 'up' && env.databaseUrl && env.jwtSecret
   return NextResponse.json(
-    { ok: healthy, db, migrations, env },
+    { ok: healthy, db, migrations, env, ai },
     { status: healthy ? 200 : 503 },
   )
 }

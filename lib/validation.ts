@@ -132,6 +132,12 @@ export const focusLogSchema = z.object({
 export const aiChatSchema = z.object({
   conversationId: z.string().cuid().optional(),
   message: z.string().trim().min(1).max(4000),
+  // Structured action — the server builds the prompt and gathers real data.
+  // Free chat remains the default.
+  action: z.enum(['chat', 'explain', 'quiz', 'flashcards', 'summarize', 'weak-topics', 'study-plan']).default('chat'),
+  topic: z.string().trim().max(200).optional().or(z.literal('')),
+  // Study-plan length in minutes (25–240).
+  durationMin: z.number().int().min(25).max(240).optional(),
   // Note content is resolved server-side from noteId (with membership check).
   // Client-sent noteContent is intentionally not accepted.
   context: z.object({
@@ -139,3 +145,20 @@ export const aiChatSchema = z.object({
     noteId: z.string().cuid().optional(),
   }).optional(),
 })
+
+// POST /api/quiz/generate — server-validated AI MCQ generation.
+export const quizGenerateSchema = z.object({
+  subject: z.string().trim().min(1).max(120),
+  topic: z.string().trim().max(120).optional().or(z.literal('')),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
+  count: z.number().int().min(3).max(8).default(5),
+})
+
+// One AI-generated multiple-choice question (validated server-side).
+export const mcqSchema = z.object({
+  question: z.string().trim().min(4).max(500),
+  options: z.array(z.string().trim().min(1).max(300)).length(4),
+  correctIndex: z.number().int().min(0).max(3),
+})
+
+export const mcqListSchema = z.array(mcqSchema).min(3).max(8)

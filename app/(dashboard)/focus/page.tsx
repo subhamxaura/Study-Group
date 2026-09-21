@@ -69,6 +69,23 @@ export default function FocusPage() {
 
   useEffect(() => { load() }, [load])
 
+  // StudyMate handoff: /focus?subject=Algebra&minutes=25 pre-fills the timer.
+  // Read once on mount via location (no Suspense boundary needed).
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      const s = q.get('subject')?.trim().slice(0, 60)
+      const m = Number(q.get('minutes'))
+      if (s) setSubject(s)
+      if (Number.isFinite(m) && m >= 1 && m <= 240) {
+        setDuration(m)
+        setRemainingSec(m * 60)
+        setCustom(String(m))
+      }
+    } catch { /* prefill is best-effort */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Open tasks for "current task" context
   useEffect(() => {
     api.get<{ tasks: Array<{ id: string; title: string; status: string }> }>('/api/tasks?status=TODO&limit=20')

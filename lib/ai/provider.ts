@@ -70,22 +70,102 @@ class OpenAIProvider implements AIProvider {
   }
 }
 
+class GeminiProvider implements AIProvider {
+  name = 'gemini'
+  async chat(messages: { role: string; content: string }[]): Promise<string> {
+    const key = process.env.GEMINI_API_KEY
+    if (!key) {
+      throw new AIError(503, 'StudyMate is not configured on this deployment. Set GEMINI_API_KEY to enable it.')
+    }
+    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+    const systemParts: { text: string }[] = []
+    const contents: { role: string; parts: { text: string }[] }[] = []
+
+    for (const m of messages) {
+      if (m.role === 'system') {
+        systemParts.push({ text: m.content })
+      } else {
+        contents.push({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        })
+      }
+    }
+
+    const payload: Record<string, unknown> = {
+      contents,
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+      },
+    }
+    if (systemParts.length > 0) {
+      payload.systemInstruction = { parts: systemParts }
+    }
+
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), PROVIDER_TIMEOUT_MS)
+    let res: Response
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal,
+        },
+      )
+    } catch {
+      throw new AIError(504, 'StudyMate timed out. Please try again in a moment.')
+    } finally {
+      clearTimeout(timer)
+    }
+
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('retry-after')) || 30
+      throw new AIError(429, 'StudyMate is busy right now. Please wait a moment and try again.', retryAfter)
+    }
+    if (res.status === 400 || res.status === 401 || res.status === 403) {
+      throw new AIError(503, 'StudyMate is misconfigured on this deployment. The administrator should check the Gemini API key.')
+    }
+    if (!res.ok) {
+      throw new AIError(502, 'The AI provider failed. Please try again in a moment.')
+    }
+
+    const json = (await res.json().catch(() => null)) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[]
+    } | null
+    const content = json?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim()
+    if (!content) throw new AIError(502, 'The AI provider returned an empty response. Please try again.')
+    return content
+  }
+}
+
 // Registry — swap providers without touching call sites.
 const providers: Record<string, () => AIProvider> = {
   openai: () => new OpenAIProvider(),
-  // anthropic: () => new AnthropicProvider(), // add when needed
+  gemini: () => new GeminiProvider(),
+}
+
+export function getProviderName(): 'gemini' | 'openai' {
+  if (process.env.AI_PROVIDER === 'gemini' || (!process.env.OPENAI_API_KEY && process.env.GEMINI_API_KEY)) {
+    return 'gemini'
+  }
+  return 'openai'
 }
 
 export function getProvider(): AIProvider | null {
-  const name = process.env.AI_PROVIDER || 'openai'
-  const hasKey = Boolean(process.env.OPENAI_API_KEY)
+  const name = getProviderName()
+  const hasKey = name === 'gemini' ? Boolean(process.env.GEMINI_API_KEY) : Boolean(process.env.OPENAI_API_KEY)
   if (!hasKey) return null
   const factory = providers[name]
   return factory ? factory() : null
 }
 
 export function isAIConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY)
+  const name = getProviderName()
+  return name === 'gemini' ? Boolean(process.env.GEMINI_API_KEY) : Boolean(process.env.OPENAI_API_KEY)
 }
 
 /**

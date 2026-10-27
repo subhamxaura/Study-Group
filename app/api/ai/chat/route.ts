@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser, parseBody } from '@/lib/api'
-import { getProvider, isAIConfigured, isAIError, STUDYMATE_SYSTEM_PROMPT } from '@/lib/ai/provider'
+import { getProvider, getProviderName, isAIConfigured, isAIError, STUDYMATE_SYSTEM_PROMPT } from '@/lib/ai/provider'
 import { getStudySnapshot, formatSnapshotForPrompt, authorizeNote } from '@/lib/ai/context'
 import { aiChatSchema } from '@/lib/validation'
 import { rateLimit } from '@/lib/rateLimit'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 // GET — configuration status for the client (no secrets)
 export const GET = withUser(async () => {
-  return ok({ configured: isAIConfigured(), provider: process.env.AI_PROVIDER || 'openai' })
+  return ok({ configured: isAIConfigured(), provider: getProviderName() })
 })
 
 const ACTION_NEEDS_TOPIC = ['explain', 'quiz', 'flashcards'] as const
@@ -47,7 +47,7 @@ export const POST = withUser(async (user, req) => {
 
   const provider = getProvider()
   if (!provider) {
-    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY to enable it.', 503)
+    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY or GEMINI_API_KEY to enable it.', 503)
   }
 
   // Resolve or create conversation

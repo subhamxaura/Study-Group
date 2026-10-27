@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from '@prisma/client'
 
-const BASE = 'http://localhost:3210'
+const BASE = process.env.JOURNEY_BASE_URL || process.env.E2E_BASE_URL || 'http://localhost:3210'
 let passed = 0, failed = 0
 const failures = []
 function check(cond, label, extra = '') {

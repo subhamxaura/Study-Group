@@ -16,11 +16,11 @@ export const POST = withUser(async (user, req) => {
   const data = await parseBody(req, quizGenerateSchema)
 
   if (!isAIConfigured()) {
-    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY to enable it.', 503)
+    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY or GEMINI_API_KEY to enable it.', 503)
   }
   const provider = getProvider()
   if (!provider) {
-    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY to enable it.', 503)
+    return fail('StudyMate is not configured on this deployment. Set OPENAI_API_KEY or GEMINI_API_KEY to enable it.', 503)
   }
 
   const scope = data.topic ? `"${data.topic}" (${data.subject})` : `"${data.subject}"`

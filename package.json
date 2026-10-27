@@ -21,7 +21,8 @@
     "test:e2e": "node tests/e2e/api.spec.mjs",
     "dev:realtime": "node --watch server/realtime.mjs",
     "start:realtime": "node server/realtime.mjs",
-    "test:realtime": "node --test tests/realtime/service.test.mjs"
+    "test:realtime": "node --test tests/realtime/service.test.mjs",
+    "test": "npm run type-check && npm run lint"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

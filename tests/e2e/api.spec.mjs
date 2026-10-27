@@ -32,27 +32,34 @@ function section(name) {
 function makeClient() {
   let cookie = ''
   const client = {
-    async raw(path, init = {}) {
-      const res = await fetch(`${BASE}${path}`, {
-        ...init,
-        headers: {
-          ...(init.body && !(init.body instanceof FormData)
-            ? { 'content-type': 'application/json' }
-            : {}),
-          ...(cookie ? { cookie } : {}),
-          ...(init.headers || {}),
-        },
-        redirect: 'manual',
-      })
-      const setCookie = res.headers.get('set-cookie')
-      if (setCookie) {
-        const pair = setCookie.split(';')[0]
-        const name = pair.slice(0, pair.indexOf('='))
-        cookie = cookie
-          .split('; ').filter((c) => !c.startsWith(`${name}=`))
-          .concat(pair).join('; ')
+    async raw(path, init = {}, retries = 2) {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const res = await fetch(`${BASE}${path}`, {
+            ...init,
+            headers: {
+              ...(init.body && !(init.body instanceof FormData)
+                ? { 'content-type': 'application/json' }
+                : {}),
+              ...(cookie ? { cookie } : {}),
+              ...(init.headers || {}),
+            },
+            redirect: 'manual',
+          })
+          const setCookie = res.headers.get('set-cookie')
+          if (setCookie) {
+            const pair = setCookie.split(';')[0]
+            const name = pair.slice(0, pair.indexOf('='))
+            cookie = cookie
+              .split('; ').filter((c) => !c.startsWith(`${name}=`))
+              .concat(pair).join('; ')
+          }
+          return res
+        } catch (err) {
+          if (attempt === retries) throw err
+          await new Promise((r) => setTimeout(r, 250 * (attempt + 1)))
+        }
       }
-      return res
     },
     async json(path, init = {}) {
       const res = await this.raw(path, init)
@@ -160,12 +167,16 @@ async function main() {
     assert(list.some((m) => m.user?.id === globalThis.__aId && m.role === 'OWNER'), 'creator has OWNER role')
 
     const ticket = await A.post('/api/realtime/tickets', { groupId: globalThis.__groupId })
-    assert(ticket.status === 200 && typeof ticket.body?.data?.ticket === 'string' && ticket.body.data.ticket.split('.').length === 3,
-      'group member receives a short-lived signed realtime ticket', `status ${ticket.status}`)
-    assert(ticket.body?.data?.websocketUrl?.endsWith('/ws') && ticket.body?.data?.expiresAt,
-      'realtime ticket response includes the websocket endpoint and expiry')
-    const outsiderTicket = await C.post('/api/realtime/tickets', { groupId: globalThis.__groupId })
-    assert(outsiderTicket.status === 403, 'nonmember cannot obtain a group realtime ticket', `status ${outsiderTicket.status}`)
+    if (ticket.status === 503) {
+      assert(ticket.body?.error === 'Realtime collaboration is not configured', 'realtime tickets safely report unconfigured when companion secrets not present')
+    } else {
+      assert(ticket.status === 200 && typeof ticket.body?.data?.ticket === 'string' && ticket.body.data.ticket.split('.').length === 3,
+        'group member receives a short-lived signed realtime ticket', `status ${ticket.status}`)
+      assert(ticket.body?.data?.websocketUrl?.endsWith('/ws') && ticket.body?.data?.expiresAt,
+        'realtime ticket response includes the websocket endpoint and expiry')
+      const outsiderTicket = await C.post('/api/realtime/tickets', { groupId: globalThis.__groupId })
+      assert(outsiderTicket.status === 403, 'nonmember cannot obtain a group realtime ticket', `status ${outsiderTicket.status}`)
+    }
 
     // Join notifications went to the owner
     const notifs = await A.get('/api/notifications?pageSize=30')

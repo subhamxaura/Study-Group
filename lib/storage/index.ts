@@ -1,6 +1,7 @@
 import 'server-only'
 import { mkdir, writeFile, readFile, unlink } from 'fs/promises'
 import path from 'path'
+import os from 'os'
 import crypto from 'crypto'
 import type { ResourceType } from '@prisma/client'
 
@@ -75,7 +76,7 @@ export function newStorageKey(userId: string, fileName: string): string {
 
 class LocalStorageProvider implements StorageProvider {
   readonly kind = 'LOCAL' as const
-  private baseDir = path.join(process.cwd(), '.uploads')
+  private baseDir = process.env.VERCEL ? path.join(os.tmpdir(), '.uploads') : path.join(process.cwd(), '.uploads')
 
   async put(key: string, data: Buffer, _mimeType: string) {
     const full = path.join(this.baseDir, key)

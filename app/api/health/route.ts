@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getProviderName, isAIConfigured } from '@/lib/ai/provider'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +17,12 @@ export async function GET() {
     jwtSecret: Boolean(process.env.JWT_SECRET),
   }
 
+  const activeProvider = getProviderName()
   // AI presence only — never values. Lets ops verify StudyMate readiness.
   const ai = {
-    provider: process.env.AI_PROVIDER || 'openai',
-    configured: Boolean(process.env.OPENAI_API_KEY),
-    modelSet: Boolean(process.env.OPENAI_MODEL),
+    provider: activeProvider,
+    configured: isAIConfigured(),
+    modelSet: Boolean(activeProvider === 'gemini' ? process.env.GEMINI_MODEL : process.env.OPENAI_MODEL),
   }
 
   let db: 'up' | 'down' = 'down'

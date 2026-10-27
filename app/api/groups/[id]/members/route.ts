@@ -5,10 +5,10 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const members = await prisma.groupMember.findMany({
     where: { groupId: id },
@@ -24,7 +24,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 const patchSchema = z.object({ userId: z.string().cuid(), role: z.enum(['ADMIN', 'MEMBER']) })
 
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireRole(id, user.id, 'OWNER')
   const { userId, role } = await parseBody(req, patchSchema)
   const target = await prisma.groupMember.findUnique({
@@ -41,7 +41,7 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
 })
 
 export const DELETE = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireRole(id, user.id, 'ADMIN')
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId') ?? ''

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { ok, withUser, parseBody } from '@/lib/api'
+import { requireMembership } from '@/lib/groups'
 import { focusLogSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +56,7 @@ export const GET = withUser(async (user, req) => {
 // POST /api/focus — complete a focus session
 export const POST = withUser(async (user, req) => {
   const data = await parseBody(req, focusLogSchema)
+  if (data.groupId) await requireMembership(data.groupId, user.id)
   const startedAt = data.startedAt ? new Date(data.startedAt) : new Date(Date.now() - data.durationMinutes * 60000)
   const endedAt = new Date(startedAt.getTime() + data.durationMinutes * 60000)
 

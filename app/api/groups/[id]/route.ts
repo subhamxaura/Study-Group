@@ -5,10 +5,10 @@ import { updateGroupSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const group = await prisma.group.findUnique({
     where: { id },
     include: {
@@ -86,7 +86,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 })
 
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireRole(id, user.id, 'ADMIN')
   const data = await parseBody(req, updateGroupSchema)
   const group = await prisma.group.update({
@@ -108,7 +108,7 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
 })
 
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireRole(id, user.id, 'OWNER')
   await prisma.group.delete({ where: { id } })
   return ok({ deleted: true })

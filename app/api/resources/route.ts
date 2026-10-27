@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { ok, withUser, parseBody } from '@/lib/api'
 import { requireMembership } from '@/lib/groups'
 import { resourceSchema } from '@/lib/validation'
@@ -16,21 +17,32 @@ export const GET = withUser(async (user, req) => {
   const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1)
   const pageSize = Math.min(48, Math.max(6, Number(searchParams.get('pageSize') ?? 24) || 24))
 
-  const where = saved
-    ? { bookmarks: { some: { userId: user.id } } }
+  const visibleGroupIds = groupId
+    ? (await requireMembership(groupId, user.id), [groupId])
+    : (await prisma.groupMember.findMany({ where: { userId: user.id }, select: { groupId: true } })).map((m) => m.groupId)
+  const visibility: Prisma.ResourceWhereInput = groupId
+    ? { groupId }
     : {
-        ...(groupId ? { groupId } : {}),
-        ...(type && type !== 'ALL' ? { type: type as 'PDF' | 'NOTE' | 'LINK' | 'VIDEO' | 'IMAGE' | 'DOCUMENT' } : {}),
-        ...(q
-          ? {
-              OR: [
-                { title: { contains: q, mode: 'insensitive' as const } },
-                { description: { contains: q, mode: 'insensitive' as const } },
-                { tags: { has: q.toLowerCase() } },
-              ],
-            }
-          : {}),
+        OR: [
+          { groupId: null, isFile: false },
+          { groupId: null, isFile: true, uploaderId: user.id },
+          { groupId: { in: visibleGroupIds } },
+        ],
       }
+  const where: Prisma.ResourceWhereInput = {
+    ...visibility,
+    ...(saved ? { bookmarks: { some: { userId: user.id } } } : {}),
+    ...(type && type !== 'ALL' ? { type: type as 'PDF' | 'NOTE' | 'LINK' | 'VIDEO' | 'IMAGE' | 'DOCUMENT' } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+            { tags: { has: q.toLowerCase() } },
+          ],
+        }
+      : {}),
+  }
 
   const orderBy =
     sort === 'popular' ? { downloads: 'desc' as const }

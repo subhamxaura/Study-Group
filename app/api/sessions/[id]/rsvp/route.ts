@@ -5,10 +5,10 @@ import { rsvpSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { status } = await parseBody(req, rsvpSchema)
 
   const session = await prisma.studySession.findUnique({

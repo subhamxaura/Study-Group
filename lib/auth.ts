@@ -48,8 +48,8 @@ export function verifyPassword(plain: string, hash: string): Promise<boolean> {
 
 function getSecret(): string {
   const secret = process.env.JWT_SECRET
-  if (!secret || secret.length < 16) {
-    throw new Error('JWT_SECRET is not configured (must be 16+ characters)')
+  if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
+    throw new Error('JWT_SECRET is not configured (must be at least 32 bytes)')
   }
   return secret
 }

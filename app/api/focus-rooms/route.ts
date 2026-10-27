@@ -79,6 +79,15 @@ export const POST = withUser(async (user, req) => {
   const data = await parseBody(req, createRoomSchema)
 
   if (data.groupId) await requireMembership(data.groupId, user.id)
+  if (data.taskId) {
+    const task = await prisma.task.findUnique({
+      where: { id: data.taskId },
+      select: { id: true, groupId: true, creatorId: true, assigneeId: true },
+    })
+    if (!task || task.groupId !== (data.groupId ?? null)) return fail('Task not found', 404)
+    if (task.groupId) await requireMembership(task.groupId, user.id)
+    else if (task.creatorId !== user.id && task.assigneeId !== user.id) return fail('Task not found', 404)
+  }
 
   const startedAt = new Date()
   const endsAt = new Date(startedAt.getTime() + data.durationMin * 60_000)

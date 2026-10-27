@@ -110,6 +110,9 @@ async function main() {
 
     const groups = await C.get('/api/groups')
     assert(groups.status === 401, 'unauthenticated groups API rejected with 401', `status ${groups.status}`)
+
+    const realtimeTicket = await C.post('/api/realtime/tickets', { groupId: 'c000000000000000000000000' })
+    assert(realtimeTicket.status === 401, 'unauthenticated realtime ticket request rejected with 401', `status ${realtimeTicket.status}`)
   }
 
   section('Registration & login')
@@ -118,7 +121,8 @@ async function main() {
     globalThis.__aId = a.id
     const b = await registerUser(B, 'member')
     globalThis.__bId = b.id
-    await registerUser(C, 'outsider')
+    const c = await registerUser(C, 'outsider')
+    globalThis.__cId = c.id
 
     const dup = await A.post('/api/auth/register', { name: 'Dup', email: a.email, password: 'x'.repeat(12) })
     assert(dup.status === 409, 'duplicate email registration rejected with 409', `status ${dup.status}`)
@@ -154,6 +158,14 @@ async function main() {
     const list = members.body?.data?.members ?? []
     assert(members.status === 200 && Array.isArray(list) && list.length >= 2, 'members list contains both users', `count ${list.length}`)
     assert(list.some((m) => m.user?.id === globalThis.__aId && m.role === 'OWNER'), 'creator has OWNER role')
+
+    const ticket = await A.post('/api/realtime/tickets', { groupId: globalThis.__groupId })
+    assert(ticket.status === 200 && typeof ticket.body?.data?.ticket === 'string' && ticket.body.data.ticket.split('.').length === 3,
+      'group member receives a short-lived signed realtime ticket', `status ${ticket.status}`)
+    assert(ticket.body?.data?.websocketUrl?.endsWith('/ws') && ticket.body?.data?.expiresAt,
+      'realtime ticket response includes the websocket endpoint and expiry')
+    const outsiderTicket = await C.post('/api/realtime/tickets', { groupId: globalThis.__groupId })
+    assert(outsiderTicket.status === 403, 'nonmember cannot obtain a group realtime ticket', `status ${outsiderTicket.status}`)
 
     // Join notifications went to the owner
     const notifs = await A.get('/api/notifications?pageSize=30')
@@ -216,6 +228,11 @@ async function main() {
     const searchPriv = await C.get(`/api/search?q=${encodeURIComponent('E2E Private Group')}`)
     assert((searchPriv.body?.data?.groups ?? []).length === 0, 'private group NOT returned in outsider search (permission-aware)')
 
+    const privateList = await C.get(`/api/groups?visibility=private&q=${encodeURIComponent('E2E Private Group')}`)
+    assert(privateList.status === 200 && (privateList.body?.data?.groups ?? []).length === 0, 'private group NOT enumerable through group-list filters')
+    const directJoin = await C.post(`/api/groups/${globalThis.__privId}/join`)
+    assert(directJoin.status === 403, 'outsider cannot self-join a private group', `status ${directJoin.status}`)
+
     const asOutsider = await C.get(`/api/groups/${globalThis.__privId}`)
     assert(asOutsider.body?.data?.restricted === true && asOutsider.body?.data?.myRole === null, 'private group content restricted for outsider (limited header only)')
 
@@ -224,10 +241,37 @@ async function main() {
 
     const outsiderMembers = await C.get(`/api/groups/${globalThis.__privId}/members`)
     assert(outsiderMembers.status === 403 || outsiderMembers.body?.ok === false, 'private group members forbidden for outsider', `status ${outsiderMembers.status}`)
+
+    const invite = await A.post(`/api/groups/${globalThis.__privId}/invites`)
+    const invitePath = invite.body?.data?.invitePath
+    const code = invitePath ? invitePath.split('/').pop() : ''
+    assert(invite.status === 200 && /^\/invite\/[A-Za-z0-9_-]{43}$/.test(invitePath), 'admin can create a high-entropy private-group invite')
+    const preview = await C.get(`/api/invites/${code}`)
+    assert(preview.status === 200 && preview.body?.data?.group?.id === globalThis.__privId, 'invite preview identifies the invited group')
+    const accept = await C.post(`/api/invites/${code}/accept`)
+    assert(accept.status === 200 && accept.body?.data?.joined === true, 'authenticated invitee can join private group')
+    const privateDetail = await C.get(`/api/groups/${globalThis.__privId}`)
+    assert(privateDetail.body?.data?.restricted === false && privateDetail.body?.data?.myRole === 'MEMBER', 'accepted invite grants member access')
+    const reuse = await B.post(`/api/invites/${code}/accept`)
+    assert(reuse.status === 404, 'accepted invitation cannot be reused by a second account', `status ${reuse.status}`)
+
+    const revocable = await A.post(`/api/groups/${globalThis.__privId}/invites`)
+    const revokeCode = revocable.body?.data?.invitePath?.split('/').pop()
+    const revoked = await A.del(`/api/groups/${globalThis.__privId}/invites/${revocable.body?.data?.inviteId}`)
+    assert(revoked.status === 200 && revoked.body?.data?.revoked === true, 'owner can revoke an unused invitation')
+    const revokedPreview = await C.get(`/api/invites/${revokeCode}`)
+    assert(revokedPreview.status === 404, 'revoked invitation link is no longer usable')
   }
 
   section('Tasks: create, transition, comments')
   {
+    const csrfAttempt = await A.json('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ title: 'Cross-origin task must not persist', groupId: globalThis.__groupId }),
+      headers: { origin: 'https://attacker.example' },
+    })
+    assert(csrfAttempt.status === 403, 'cross-origin authenticated mutation is rejected', `status ${csrfAttempt.status}`)
+
     const created = await A.post('/api/tasks', {
       title: 'E2E task: solve problem set',
       groupId: globalThis.__groupId,
@@ -235,6 +279,33 @@ async function main() {
     })
     assert(created.status === 200 && created.body?.data?.task?.id, 'task creation returns task', `status ${created.status}`)
     const tid = created.body?.data?.task?.id
+
+    const assignedTask = await A.post('/api/tasks', {
+      title: 'E2E member-only task',
+      groupId: globalThis.__groupId,
+      assigneeId: globalThis.__bId,
+    })
+    assert(assignedTask.status === 200 && assignedTask.body?.data?.task?.id,
+      'group task can be assigned to a current member', `status ${assignedTask.status}`)
+    const assignedId = assignedTask.body?.data?.task?.id
+    const outsiderAssignment = await A.post('/api/tasks', {
+      title: 'E2E outsider assignment must fail',
+      groupId: globalThis.__groupId,
+      assigneeId: globalThis.__cId,
+    })
+    assert(outsiderAssignment.status === 403, 'group task cannot be assigned to a nonmember', `status ${outsiderAssignment.status}`)
+    const outsiderReassignment = await A.patch(`/api/tasks/${assignedId}`, { assigneeId: globalThis.__cId })
+    assert(outsiderReassignment.status === 403, 'group task cannot be reassigned to a nonmember', `status ${outsiderReassignment.status}`)
+    const memberTasks = await B.get('/api/tasks?scope=mine')
+    assert((memberTasks.body?.data?.tasks ?? []).some((task) => task.id === assignedId),
+      'current member can see a group task assigned to them')
+
+    const outsiderGroupTasks = await C.get(`/api/tasks?scope=group&groupId=${globalThis.__groupId}`)
+    assert(outsiderGroupTasks.status === 403, 'outsider cannot read group tasks', `status ${outsiderGroupTasks.status}`)
+    const missingGroup = await A.get('/api/tasks?scope=group')
+    assert(missingGroup.status === 400, 'group task scope requires a groupId', `status ${missingGroup.status}`)
+    const mismatchedRoomTask = await A.post('/api/focus-rooms', { subject: 'Solo room', durationMin: 25, taskId: tid })
+    assert(mismatchedRoomTask.status === 404, 'group task cannot be attached to a solo focus room', `status ${mismatchedRoomTask.status}`)
 
     const complete = await A.patch(`/api/tasks/${tid}`, { status: 'COMPLETED' })
     assert(complete.status === 200 && complete.body?.data?.task?.status === 'COMPLETED', 'task status transition persists', `status ${complete.status}`)
@@ -251,6 +322,16 @@ async function main() {
     // Group membership gate: outsider cannot comment on the group task
     const outsiderComment = await C.post(`/api/tasks/${tid}/comments`, { content: 'intruding' })
     assert(outsiderComment.status === 403 || outsiderComment.body?.ok === false, 'outsider cannot comment on group task', `status ${outsiderComment.status}`)
+
+    const removeMember = await A.del(`/api/groups/${globalThis.__groupId}/members?userId=${globalThis.__bId}`)
+    assert(removeMember.status === 200, 'owner removes the task assignee from the group', `status ${removeMember.status}`)
+    const formerMemberTasks = await B.get('/api/tasks?scope=mine')
+    assert(!(formerMemberTasks.body?.data?.tasks ?? []).some((task) => task.id === assignedId),
+      'former member no longer sees a group task assigned to them')
+    const formerMemberEdit = await B.patch(`/api/tasks/${assignedId}`, { status: 'COMPLETED' })
+    assert(formerMemberEdit.status === 403, 'former member cannot mutate a group task through assignee access', `status ${formerMemberEdit.status}`)
+    const rejoin = await B.post(`/api/groups/${globalThis.__groupId}/join`)
+    assert(rejoin.status === 200 && rejoin.body?.data?.joined, 'member fixture rejoins for subsequent group tests', `status ${rejoin.status}`)
   }
 
   section('Sessions: create, RSVP, participants, attendance')
@@ -304,6 +385,11 @@ async function main() {
     assert(log.status === 200 && log.body?.data?.log?.id, 'focus log persists', `status ${log.status}`)
     assert(log.body?.data?.streak?.current >= Math.max(1, beforeStreak), 'streak maintained or advanced', `${beforeStreak} -> ${log.body?.data?.streak?.current}`)
 
+    const unauthorizedGroupLog = await C.post('/api/focus', {
+      durationMinutes: 5, subject: 'Unauthorized group focus', tasksCompleted: 0, groupId: globalThis.__groupId,
+    })
+    assert(unauthorizedGroupLog.status === 403, 'outsider cannot create a focus log in a group', `status ${unauthorizedGroupLog.status}`)
+
     const invalid = await A.post('/api/focus', { durationMinutes: 999 })
     assert(invalid.status === 422, 'oversized focus duration rejected with 422', `status ${invalid.status}`)
 
@@ -328,6 +414,13 @@ async function main() {
     const saved = await A.get('/api/resources?saved=1')
     assert((saved.body?.data?.resources ?? []).some((x) => x.id === rid), 'bookmarked resource appears in saved view')
 
+    const outsiderResources = await C.get('/api/resources?pageSize=48')
+    assert(!(outsiderResources.body?.data?.resources ?? []).some((r) => r.id === rid), 'group resource metadata is hidden from non-members')
+    const outsiderGroupResources = await C.get(`/api/resources?groupId=${globalThis.__groupId}`)
+    assert(outsiderGroupResources.status === 403, 'non-member cannot list group resources', `status ${outsiderGroupResources.status}`)
+    const outsiderBookmark = await C.post(`/api/resources/${rid}/bookmark`)
+    assert(outsiderBookmark.status === 403, 'non-member cannot bookmark a group resource', `status ${outsiderBookmark.status}`)
+
     // File upload: minimal valid PNG (magic bytes checked server-side)
     const png = Buffer.from(
       '89504e470d0a1a0a0000000d494844520000000100000001080600000'
@@ -351,6 +444,23 @@ async function main() {
 
       const outsiderFetch = await C.raw(fileUrl)
       assert(outsiderFetch.status === 403, 'file download forbidden for non-members', `status ${outsiderFetch.status}`)
+    }
+
+    const personalForm = new FormData()
+    personalForm.append('file', new Blob([png], { type: 'image/png' }), 'e2e-personal.png')
+    personalForm.append('title', 'E2E personal upload')
+    const personalUpload = await A.raw('/api/uploads', { method: 'POST', body: personalForm })
+    const personalBody = await personalUpload.json().catch(() => null)
+    const personalFileUrl = personalBody?.data?.resource?.url
+    const personalFileId = personalBody?.data?.resource?.id
+    assert(personalUpload.status === 200 && personalFileUrl && personalFileId, 'ungrouped file upload persists', `status ${personalUpload.status}`)
+    if (personalFileUrl && personalFileId) {
+      const ownerDownload = await A.raw(personalFileUrl)
+      const strangerDownload = await C.raw(personalFileUrl)
+      assert(ownerDownload.status === 200, 'uploader can read their ungrouped file', `status ${ownerDownload.status}`)
+      assert(strangerDownload.status === 404, 'other users cannot read an ungrouped file', `status ${strangerDownload.status}`)
+      const strangerBookmark = await C.post(`/api/resources/${personalFileId}/bookmark`)
+      assert(strangerBookmark.status === 404, 'other users cannot bookmark an ungrouped file', `status ${strangerBookmark.status}`)
     }
 
     // Validation: mismatched content (PNG bytes declared as PDF) must be rejected
@@ -525,6 +635,18 @@ async function main() {
     )
     await B.put('/api/profile', { name: 'E2E member', privacy: 'PUBLIC' })
 
+    const foreignGroup = await C2.post('/api/groups', { name: 'E2E Foreign Group', subject: 'Testing', isPublic: true, tags: [] })
+    const foreignGroupId = foreignGroup.body?.data?.group?.id
+    globalThis.__foreignGroupId = foreignGroupId
+    const foreignMessage = foreignGroupId
+      ? await C2.post(`/api/groups/${foreignGroupId}/messages`, { content: 'Message from another group' })
+      : { status: 500, body: null }
+    const crossGroupReply = await A.post(`/api/groups/${globalThis.__groupId}/messages`, {
+      content: 'Attempted cross-group reply', replyToId: foreignMessage.body?.data?.message?.id,
+    })
+    assert(foreignGroupId && foreignMessage.status === 200, 'foreign-group message fixture created')
+    assert(crossGroupReply.status === 404, 'cross-group reply reference is rejected', `status ${crossGroupReply.status}`)
+
     // Resource view/download counters: outsiders must not mutate
     const resList = await A.get(`/api/resources?groupId=${globalThis.__groupId}&pageSize=6`)
     const counterTarget = (resList.body?.data?.resources ?? [])[0]
@@ -587,7 +709,7 @@ async function main() {
     )
 
     // A nonexistent note id is 404, not a crash
-    const ghost = await A.post('/api/ai/chat', { message: 'summarize', context: { noteId: 'noteid_does_not_exist_000' } })
+    const ghost = await A.post('/api/ai/chat', { message: 'summarize', context: { noteId: 'c000000000000000000000000' } })
     assert(ghost.status === 404 || ghost.status === 503, 'nonexistent noteId → 404 (or 503 when AI off)', `status ${ghost.status}`)
   }
 
@@ -652,6 +774,9 @@ async function main() {
     // Pause/resume: host-only, state persisted server-side
     const pausedByB = await B.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'pause' })
     assert(pausedByB.status === 403, 'non-host cannot pause', `status ${pausedByB.status}`)
+    const afterDeniedPause = await A.get(`/api/focus-rooms/${rid}`)
+    const bPresence = (afterDeniedPause.body?.data?.room?.participants ?? []).find((p) => p.id === globalThis.__bId)?.presence
+    assert(bPresence === 'FOCUSING', 'rejected non-host pause does not mutate participant presence', `presence ${bPresence}`)
     const paused = await A.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'pause' })
     assert(paused.status === 200 && paused.body?.data?.status === 'PAUSED', 'host pause persists PAUSED', `status ${paused.status}`)
     const resumed = await A.patch(`/api/focus-rooms/${rid}`, { presence: 'FOCUSING', action: 'resume' })
@@ -743,6 +868,14 @@ async function main() {
 
   section('Cleanup')
   {
+    if (globalThis.__foreignGroupId) {
+      const del = await C2.del(`/api/groups/${globalThis.__foreignGroupId}`)
+      assert(del.status === 200 || del.status === 404, 'owner removes foreign reply-test group', `status ${del.status}`)
+    }
+    if (globalThis.__privId) {
+      const del = await A.del(`/api/groups/${globalThis.__privId}`)
+      assert(del.status === 200 || del.status === 404, 'owner removes test private group', `status ${del.status}`)
+    }
     if (globalThis.__groupId) {
       const del = await A.del(`/api/groups/${globalThis.__groupId}`)
       assert(del.status === 200 || del.status === 403, 'owner deletes test group', `status ${del.status}`)

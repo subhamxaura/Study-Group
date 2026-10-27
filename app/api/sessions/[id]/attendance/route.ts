@@ -5,11 +5,11 @@ import { requireRole } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 // GET /api/sessions/:id/attendance — detail view with participants
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const session = await prisma.studySession.findUnique({
     where: { id },
     include: {
@@ -47,7 +47,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 
 // POST /api/sessions/:id/attendance — host marks participation
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { userId, attended } = await parseBody(
     req,
     z.object({ userId: z.string().cuid(), attended: z.boolean() }),

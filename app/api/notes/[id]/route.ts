@@ -5,13 +5,13 @@ import { noteSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 // PUT — versioned edit. Every save snapshots the outgoing state into
 // NoteVersion before applying the update, so history is complete and restorable.
 // This is versioned collaboration, not realtime co-editing.
 export const PUT = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const note = await prisma.note.findUnique({ where: { id }, select: { id: true, groupId: true, version: true, title: true, content: true, kind: true, tags: true } })
   if (!note) return fail('Note not found', 404)
   await requireMembership(note.groupId, user.id)
@@ -57,7 +57,7 @@ export const PUT = withUser(async (user, req, ctx: Ctx) => {
 
 // GET ?versions=1 — version history (metadata + content) for the editor
 export const GET = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { searchParams } = new URL(req.url)
   if (searchParams.get('versions') !== '1') {
     // Default GET returns the note itself (kept for the editor open flow)
@@ -86,7 +86,7 @@ export const GET = withUser(async (user, req, ctx: Ctx) => {
 
 // POST — restore a version: applies its content as a NEW version (history is never rewritten)
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const body = await req.json().catch(() => null) as { versionId?: string } | null
   if (!body?.versionId) return fail('versionId is required', 422)
   const note = await prisma.note.findUnique({ where: { id }, select: { id: true, groupId: true, version: true } })
@@ -110,7 +110,7 @@ export const POST = withUser(async (user, req, ctx: Ctx) => {
 })
 
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const note = await prisma.note.findUnique({ where: { id }, select: { id: true, groupId: true, authorId: true } })
   if (!note) return fail('Note not found', 404)
   const m = await requireMembership(note.groupId, user.id)

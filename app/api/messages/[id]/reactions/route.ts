@@ -1,14 +1,15 @@
 import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { requireMembership } from '@/lib/groups'
+import { publishGroupMessageChange } from '@/lib/realtime'
 import { reactionSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { emoji } = await parseBody(req, reactionSchema)
   const message = await prisma.message.findUnique({
     where: { id },
@@ -24,9 +25,11 @@ export const POST = withUser(async (user, req, ctx: Ctx) => {
     await prisma.messageReaction.delete({ where: { id: existing.id } })
     // Bump the parent so other clients' delta-sync picks up the reaction change.
     await prisma.message.update({ where: { id }, data: { updatedAt: new Date() } })
+    await publishGroupMessageChange(message.groupId, user.id)
     return ok({ reacted: false })
   }
   await prisma.messageReaction.create({ data: { messageId: id, userId: user.id, emoji } })
   await prisma.message.update({ where: { id }, data: { updatedAt: new Date() } })
+  await publishGroupMessageChange(message.groupId, user.id)
   return ok({ reacted: true })
 })

@@ -4,7 +4,7 @@ import { taskCommentSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 async function canAccessTask(taskId: string, userId: string) {
   const task = await prisma.task.findUnique({
@@ -23,7 +23,7 @@ async function canAccessTask(taskId: string, userId: string) {
 }
 
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { allowed } = await canAccessTask(id, user.id)
   if (!allowed) return fail('You do not have access to this task', 403)
   const comments = await prisma.taskComment.findMany({
@@ -36,7 +36,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 })
 
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { task, allowed } = await canAccessTask(id, user.id)
   if (!allowed || !task) return fail('You do not have access to this task', 403)
   const data = await parseBody(req, taskCommentSchema)

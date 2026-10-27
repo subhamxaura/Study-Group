@@ -14,7 +14,8 @@ import {
 } from 'lucide-react'
 import { Avatar } from '@/components/ui'
 import { useSession, useChatStore } from '@/lib/store'
-import { api } from '@/lib/client'
+import { ApiError, api } from '@/lib/client'
+import { useGroupRealtime, type GroupRealtimeEvent } from '@/components/chat/useGroupRealtime'
 import { tokenizeMentions } from '@/lib/mentions'
 import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/types'
@@ -22,6 +23,8 @@ import type { ChatMessage } from '@/types'
 const EMOJIS = ['👍', '❤️', '😂', '🎯', '🔥', '👏']
 const POLL_ACTIVE_MS = 2500
 const POLL_IDLE_MS = 8000
+const REALTIME_SYNC_ACTIVE_MS = 30_000
+const REALTIME_SYNC_IDLE_MS = 60_000
 const RENDER_WINDOW = 80
 const NEAR_BOTTOM_PX = 200
 
@@ -116,6 +119,7 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
   const [attachment, setAttachment] = useState<{ file: File; uploading: boolean } | null>(null)
   const [atQuery, setAtQuery] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [accessDenied, setAccessDenied] = useState(false)
 
   const listRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -127,6 +131,24 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
   const visibleRef = useRef(true)
   const atBottomRef = useRef(true)
   const inputRef = useRef<HTMLInputElement>(null)
+  const syncNowRef = useRef<() => void>(() => {})
+
+  const handleRealtimeEvent = useCallback((event: GroupRealtimeEvent) => {
+    if (event.type === 'ready') {
+      syncNowRef.current()
+    } else if (event.type === 'messages.changed' && event.groupId === groupId) {
+      syncNowRef.current()
+    } else if (event.type === 'presence') {
+      setOnline(event.users)
+      onOnlineChange?.(event.users.length)
+    } else if (event.type === 'typing') {
+      setTyping(event.users.filter((id) => id !== user?.id))
+    } else if (event.type === 'unauthorized') {
+      setAccessDenied(true)
+      reset()
+    }
+  }, [groupId, onOnlineChange, reset, setOnline, setTyping, user?.id])
+  const realtime = useGroupRealtime(groupId, Boolean(user?.id), handleRealtimeEvent)
 
   // Mention candidates from the actual member list
   const memberOptions = useMemo(
@@ -144,28 +166,49 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
   // Initial load
   useEffect(() => {
     reset()
+    setAccessDenied(false)
     let alive = true
     api.get<{ messages: ChatMessage[]; hasMore: boolean }>(`/api/groups/${groupId}/messages?limit=40`)
       .then((d) => {
         if (!alive) return
         setMessages(d.messages)
         setHasMore(d.hasMore)
+        setConnected(true)
         cursorRef.current = d.messages.length
           ? d.messages[d.messages.length - 1].createdAt
           : new Date().toISOString()
       })
-      .catch(() => {})
-      .finally(() => { if (alive) setConnected(true) })
+      .catch((error) => {
+        if (!alive) return
+        if (error instanceof ApiError && error.status === 403) {
+          setAccessDenied(true)
+          reset()
+        } else {
+          setConnected(false)
+        }
+      })
     return () => { alive = false }
   }, [groupId, reset, setMessages, setConnected])
 
   // Delta sync — new/changed messages, deletions, presence, typing, mark-read
   useEffect(() => {
+    if (accessDenied) {
+      syncNowRef.current = () => {}
+      return
+    }
     let stopped = false
     let timer: ReturnType<typeof setTimeout> | null = null
+    let inFlight = false
+    let pending = false
+
+    const pollDelay = () => realtime.connected
+      ? (visibleRef.current ? REALTIME_SYNC_ACTIVE_MS : REALTIME_SYNC_IDLE_MS)
+      : (visibleRef.current ? POLL_ACTIVE_MS : POLL_IDLE_MS)
 
     const tick = async () => {
       if (stopped) return
+      if (inFlight) { pending = true; return }
+      inFlight = true
       try {
         const params = new URLSearchParams()
         if (cursorRef.current) params.set('since', cursorRef.current)
@@ -189,22 +232,46 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
         onOnlineChange?.(d.online.length)
         setTyping(d.typing)
         setConnected(true)
-      } catch {
-        if (!stopped) setConnected(false)
+      } catch (error) {
+        if (!stopped) {
+          setConnected(false)
+          if (error instanceof ApiError && error.status === 403) {
+            setAccessDenied(true)
+            reset()
+          }
+        }
+      } finally {
+        inFlight = false
       }
-      if (!stopped) timer = setTimeout(tick, visibleRef.current ? POLL_ACTIVE_MS : POLL_IDLE_MS)
+      if (stopped) return
+      if (pending) {
+        pending = false
+        timer = setTimeout(() => { void tick() }, 0)
+      } else {
+        timer = setTimeout(() => { void tick() }, pollDelay())
+      }
     }
-    timer = setTimeout(tick, POLL_ACTIVE_MS)
+    const syncNow = () => {
+      if (timer) clearTimeout(timer)
+      timer = null
+      void tick()
+    }
+    syncNowRef.current = syncNow
+    timer = setTimeout(() => { void tick() }, realtime.connected ? REALTIME_SYNC_ACTIVE_MS : POLL_ACTIVE_MS)
 
-    const onVisibility = () => { visibleRef.current = document.visibilityState === 'visible' }
+    const onVisibility = () => {
+      visibleRef.current = document.visibilityState === 'visible'
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => { void tick() }, pollDelay())
+    }
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       stopped = true
       if (timer) clearTimeout(timer)
+      syncNowRef.current = () => {}
       document.removeEventListener('visibilitychange', onVisibility)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId])
+  }, [accessDenied, groupId, onOnlineChange, realtime.connected, removeMessages, reset, setConnected, setOnline, setTyping, upsertMessages, user?.id])
 
   // Mark read when at bottom and window visible; reset unread badge
   useEffect(() => {
@@ -228,7 +295,7 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
   const trackTyping = () => {
     if (typingSentRef.current) return
     typingSentRef.current = true
-    api.post(`/api/groups/${groupId}/sync`, { typing: true }).catch(() => {})
+    if (!realtime.sendTyping(true)) api.post(`/api/groups/${groupId}/sync`, { typing: true }).catch(() => {})
     if (typingRef.current) clearTimeout(typingRef.current)
     typingRef.current = setTimeout(() => { typingSentRef.current = false }, 2500)
   }
@@ -386,7 +453,19 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
   const typingNames = typing
     .map((id) => messages.find((m) => m.user.id === id)?.user.name ?? members.find((mm) => mm.user.id === id)?.user.name)
     .filter(Boolean) as string[]
-  const onlineSet = useMemo(() => new Set(online), [online])
+  const effectiveOnline = realtime.connected ? realtime.online : online
+  const isConnected = connected || realtime.connected
+  const onlineSet = useMemo(() => new Set(effectiveOnline), [effectiveOnline])
+
+  if (accessDenied) {
+    return (
+      <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 p-8 text-center dark:border-amber-500/20 dark:bg-amber-500/5" role="alert">
+        <p className="text-sm font-medium">Your access to this group discussion has changed.</p>
+        <p className="mt-1 text-xs text-muted">The conversation was cleared from this view. Refresh the group page to continue.</p>
+        <button onClick={() => window.location.reload()} className="btn btn-secondary btn-sm mt-4">Refresh group</button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-230px)] min-h-[440px] flex-col overflow-hidden rounded-xl border bg-[rgb(var(--sg-card))]">
@@ -395,8 +474,8 @@ export function ChatWindow({ groupId, members: membersProp, onOnlineChange }: Ch
         <div>
           <h3 className="text-sm font-semibold">Discussion</h3>
           <p className="flex items-center gap-1.5 text-xs text-muted">
-            <span className={cn('h-1.5 w-1.5 rounded-full', connected ? 'bg-emerald-500' : 'bg-zinc-400')} />
-            {connected ? `Live · ${online.length} online` : 'Reconnecting…'}
+            <span className={cn('h-1.5 w-1.5 rounded-full', isConnected ? 'bg-emerald-500' : 'bg-zinc-400')} />
+            {isConnected ? `Live · ${effectiveOnline.length} online` : 'Reconnecting…'}
           </p>
         </div>
         <button

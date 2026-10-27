@@ -4,13 +4,13 @@ import { getStorageProvider } from '@/lib/storage'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { key: string[] } }
+type Ctx = { params: Promise<{ key: string[] }> }
 
 // GET /api/uploads/<key...> — authorization-gated file serving (local provider)
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
   let key = ''
   try {
-    key = ctx.params.key.map(decodeURIComponent).join('/')
+    key = (await ctx.params).key.map(decodeURIComponent).join('/')
   } catch {
     return fail('Not found', 404) // malformed percent-encoding
   }
@@ -18,7 +18,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 
   const resource = await prisma.resource.findFirst({
     where: { storageKey: key, isFile: true },
-    select: { id: true, mimeType: true, title: true, groupId: true, storageKind: true },
+    select: { id: true, mimeType: true, title: true, groupId: true, uploaderId: true },
   })
   if (!resource) return fail('Not found', 404)
   if (resource.groupId) {
@@ -27,11 +27,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
       select: { id: true },
     })
     if (!member) return fail('You do not have access to this file', 403)
-  }
-  if (resource.storageKind === 'BLOB') {
-    return fail('This file is served directly from object storage', 409)
-  }
-
+  } else if (resource.uploaderId !== user.id) return fail('Not found', 404)
   try {
     const provider = getStorageProvider()
     const data = await provider.get(key)
@@ -41,7 +37,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
         'Content-Type': resource.mimeType || 'application/octet-stream',
         'Content-Length': String(data.length),
         'Content-Disposition': `inline; filename="${encodeURIComponent(resource.title)}"`,
-        'Cache-Control': 'private, max-age=3600',
+        'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
       },
     })

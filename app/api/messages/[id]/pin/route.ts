@@ -1,13 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser } from '@/lib/api'
 import { requireRole } from '@/lib/groups'
+import { publishGroupMessageChange } from '@/lib/realtime'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const POST = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const message = await prisma.message.findUnique({
     where: { id },
     select: { id: true, groupId: true, pinned: true, deletedAt: true },
@@ -19,5 +20,6 @@ export const POST = withUser(async (user, _req, ctx: Ctx) => {
     data: { pinned: !message.pinned },
     select: { id: true, pinned: true },
   })
+  await publishGroupMessageChange(message.groupId, user.id)
   return ok({ message: updated })
 })

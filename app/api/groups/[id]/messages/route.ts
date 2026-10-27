@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/prisma'
-import { ok, withUser, parseBody } from '@/lib/api'
+import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { requireMembership } from '@/lib/groups'
 import { matchMentions } from '@/lib/mentions'
+import { publishGroupMessageChange } from '@/lib/realtime'
 import { messageSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 const messageSelect = {
   id: true, kind: true, content: true, pinned: true, createdAt: true, updatedAt: true, deletedAt: true,
@@ -19,7 +20,7 @@ const messageSelect = {
 
 // GET /api/groups/:id/messages?limit=30&before=<iso>
 export const GET = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const { searchParams } = new URL(req.url)
   const limit = Math.min(60, Math.max(10, Number(searchParams.get('limit') ?? 30) || 30))
@@ -49,9 +50,16 @@ export const GET = withUser(async (user, req, ctx: Ctx) => {
 
 // POST /api/groups/:id/messages
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const data = await parseBody(req, messageSchema)
+  if (data.replyToId) {
+    const replyTarget = await prisma.message.findFirst({
+      where: { id: data.replyToId, groupId: id, deletedAt: null },
+      select: { id: true },
+    })
+    if (!replyTarget) return fail('Reply target not found in this group', 404)
+  }
 
   // Mentions are validated server-side against actual group members.
   const memberList = await prisma.groupMember.findMany({
@@ -76,6 +84,7 @@ export const POST = withUser(async (user, req, ctx: Ctx) => {
     },
     select: messageSelect,
   })
+  await publishGroupMessageChange(id, user.id)
 
   if (mentioned.length) {
     const group = await prisma.group.findUnique({ where: { id }, select: { name: true } })

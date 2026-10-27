@@ -24,11 +24,11 @@ export const GET = withUser(async (user, req) => {
     ? { members: { some: { userId: user.id } } }
     : {
         isPublic: true,
+        ...(visibility === 'private' ? { isPublic: false, members: { some: { userId: user.id } } } : {}),
         ...(subject ? { subject: { equals: subject, mode: 'insensitive' as const } } : {}),
         ...(university ? { university: { equals: university, mode: 'insensitive' as const } } : {}),
         ...(semester ? { semester } : {}),
         ...(difficulty ? { difficulty } : {}),
-        ...(visibility === 'private' ? { isPublic: false } : {}),
         ...(q
           ? {
               OR: [

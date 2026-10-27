@@ -10,6 +10,45 @@ export function fail(message: string, status = 400, extra?: Record<string, unkno
   return NextResponse.json({ ok: false, error: message, ...extra }, { status })
 }
 
+function isSameOriginRequest(req: Request): boolean {
+  if (req.headers.get('sec-fetch-site') === 'cross-site') return false
+
+  let requestOrigin: string
+  try {
+    const requestUrl = new URL(req.url)
+    const host = req.headers.get('host') || requestUrl.host
+    // A TLS-terminating proxy must overwrite this header, not pass client input through.
+    const forwardedProto = req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
+    const protocol = (forwardedProto || requestUrl.protocol).replace(/:$/, '').toLowerCase()
+    if (!['http', 'https'].includes(protocol)) return false
+    requestOrigin = new URL(`${protocol}://${host}`).origin
+  } catch {
+    return false
+  }
+
+  const origin = req.headers.get('origin')
+  if (origin) {
+    try {
+      return new URL(origin).origin === requestOrigin
+    } catch {
+      return false
+    }
+  }
+
+  const referer = req.headers.get('referer')
+  if (referer) {
+    try {
+      return new URL(referer).origin === requestOrigin
+    } catch {
+      return false
+    }
+  }
+
+  // Header-less server-to-server clients remain supported; browsers normally
+  // provide Fetch Metadata, Origin, or Referer on authenticated requests.
+  return true
+}
+
 /** Wraps an authenticated route handler. Signature: (req, ctx) after wrapping. */
 export function withUser<C = unknown>(
   handler: (user: SafeUser, req: Request, ctx: C) => Promise<Response>,
@@ -18,6 +57,7 @@ export function withUser<C = unknown>(
     try {
       const user = await getSessionUser()
       if (!user) return fail('Not authenticated', 401)
+      if (!isSameOriginRequest(req)) return fail('Cross-origin request rejected', 403)
       return await handler(user, req, ctx)
     } catch (err) {
       return handleRouteError(err)
@@ -41,7 +81,7 @@ export function withRoute(
 export function handleRouteError(err: unknown): Response {
   if (err instanceof AuthError) return fail(err.message, err.status)
   if (err instanceof ZodError) {
-    const first = err.errors[0]
+    const first = err.issues[0]
     return fail(first ? `${first.path.join('.') || 'input'}: ${first.message}` : 'Invalid input', 422)
   }
   console.error('[api]', err)

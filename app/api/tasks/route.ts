@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { ok, withUser, parseBody } from '@/lib/api'
+import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { requireMembership } from '@/lib/groups'
 import { taskSchema } from '@/lib/validation'
 
@@ -10,6 +10,17 @@ export const GET = withUser(async (user, req) => {
   const { searchParams } = new URL(req.url)
   const scope = searchParams.get('scope') === 'group' ? 'group' : 'mine'
   const groupId = searchParams.get('groupId') || undefined
+  let memberGroupIds: string[] = []
+  if (scope === 'group') {
+    if (!groupId) return fail('groupId is required for group scope', 400)
+    await requireMembership(groupId, user.id)
+  } else {
+    const memberships = await prisma.groupMember.findMany({
+      where: { userId: user.id },
+      select: { groupId: true },
+    })
+    memberGroupIds = memberships.map((membership) => membership.groupId)
+  }
   const status = searchParams.get('status') || undefined
   const priority = searchParams.get('priority') || undefined
   const due = searchParams.get('due') || undefined // today | upcoming | overdue
@@ -31,11 +42,18 @@ export const GET = withUser(async (user, req) => {
   const priorityF = priority && priority !== 'ALL' ? { priority: priority as 'LOW' | 'MEDIUM' | 'HIGH' } : {}
 
   const where = scope === 'group' && groupId
-    ? { groupId, ...statusF, ...priorityF, ...dueFilter }
-    : {
+      ? { groupId, ...statusF, ...priorityF, ...dueFilter }
+      : {
         OR: [
-          { assigneeId: user.id },
-          { creatorId: user.id, assigneeId: null },
+          { groupId: null, assigneeId: user.id },
+          { groupId: null, creatorId: user.id, assigneeId: null },
+          {
+            groupId: { in: memberGroupIds },
+            OR: [
+              { assigneeId: user.id },
+              { creatorId: user.id, assigneeId: null },
+            ],
+          },
         ],
         ...statusF,
         ...priorityF,
@@ -62,7 +80,16 @@ export const GET = withUser(async (user, req) => {
 // POST /api/tasks
 export const POST = withUser(async (user, req) => {
   const data = await parseBody(req, taskSchema)
-  if (data.groupId) await requireMembership(data.groupId, user.id)
+  if (data.groupId) {
+    await requireMembership(data.groupId, user.id)
+    if (data.assigneeId) {
+      const assigneeMembership = await prisma.groupMember.findUnique({
+        where: { groupId_userId: { groupId: data.groupId, userId: data.assigneeId } },
+        select: { id: true },
+      })
+      if (!assigneeMembership) return fail('Assignee must be a member of the group', 403)
+    }
+  }
 
   const task = await prisma.task.create({
     data: {

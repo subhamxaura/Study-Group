@@ -6,7 +6,17 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { Button, Input, Card } from '@/components/ui'
 import { api } from '@/lib/client'
-import type { SafeUser } from '@/types'
+
+function safeReturnPath(candidate: string | null): string {
+  if (!candidate) return '/dashboard'
+  try {
+    const target = new URL(candidate, window.location.origin)
+    if (target.origin !== window.location.origin) return '/dashboard'
+    return `${target.pathname}${target.search}${target.hash}`
+  } catch {
+    return '/dashboard'
+  }
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -21,16 +31,16 @@ function LoginForm() {
     // Already signed in? go to dashboard
     fetch('/api/auth/me', { credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j?.ok && j.data?.user) router.replace('/dashboard') })
+      .then((j) => { if (j?.ok && j.data?.user) router.replace(safeReturnPath(search.get('next'))) })
       .catch(() => {})
-  }, [router])
+  }, [router, search])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(''); setSubmitting(true)
     try {
       await api.post('/api/auth/login', { email, password })
-      router.push(search.get('next') || '/dashboard')
+      router.push(safeReturnPath(search.get('next')))
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')

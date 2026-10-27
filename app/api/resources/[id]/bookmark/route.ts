@@ -1,14 +1,20 @@
 import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser } from '@/lib/api'
+import { requireMembership } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const POST = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
-  const resource = await prisma.resource.findUnique({ where: { id }, select: { id: true } })
+  const { id } = await ctx.params
+  const resource = await prisma.resource.findUnique({
+    where: { id },
+    select: { id: true, groupId: true, isFile: true, uploaderId: true },
+  })
   if (!resource) return fail('Resource not found', 404)
+  if (resource.groupId) await requireMembership(resource.groupId, user.id)
+  else if (resource.isFile && resource.uploaderId !== user.id) return fail('Resource not found', 404)
 
   const existing = await prisma.resourceBookmark.findUnique({
     where: { resourceId_userId: { resourceId: id, userId: user.id } },

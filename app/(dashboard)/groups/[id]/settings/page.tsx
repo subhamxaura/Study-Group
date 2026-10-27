@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, Trash2, AlertTriangle, ShieldCheck, Users } from 'lucide-react'
+import { Save, Trash2, AlertTriangle, ShieldCheck, Users, Link2, Copy } from 'lucide-react'
 import { Badge, Button, Input, Modal, Select, Textarea, ConfirmModal, EmptyState } from '@/components/ui'
 import { api } from '@/lib/client'
 import type { GroupDetail, MemberItem } from '@/types'
@@ -22,6 +22,12 @@ export default function GroupSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [creatingInvite, setCreatingInvite] = useState(false)
+  const [revokingInvite, setRevokingInvite] = useState(false)
+  const [inviteId, setInviteId] = useState('')
+  const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [inviteError, setInviteError] = useState('')
   const [form, setForm] = useState({
     name: '', description: '', subject: 'General', university: '',
     semester: '', difficulty: '', isPublic: true, pinnedAnnouncement: '',
@@ -102,6 +108,47 @@ export default function GroupSettingsPage() {
     load()
   }
 
+  const createInvite = async () => {
+    setCreatingInvite(true)
+    setInviteCopied(false)
+    setInviteError('')
+    try {
+      const result = await api.post<{ inviteId: string; invitePath: string }>(`/api/groups/${groupId}/invites`)
+      setInviteId(result.inviteId)
+      setInviteUrl(new URL(result.invitePath, window.location.origin).toString())
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Could not create an invite link.')
+    } finally {
+      setCreatingInvite(false)
+    }
+  }
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      setInviteCopied(true)
+      setTimeout(() => setInviteCopied(false), 2000)
+    } catch {
+      setInviteCopied(false)
+      setInviteError('Clipboard access is unavailable. Select the link and copy it manually.')
+    }
+  }
+
+  const revokeInvite = async () => {
+    setRevokingInvite(true)
+    setInviteError('')
+    try {
+      await api.del(`/api/groups/${groupId}/invites/${inviteId}`)
+      setInviteId('')
+      setInviteUrl('')
+      setInviteCopied(false)
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Could not revoke this invite.')
+    } finally {
+      setRevokingInvite(false)
+    }
+  }
+
   return (
     <div className="section-container max-w-2xl space-y-6">
       <div>
@@ -175,6 +222,31 @@ export default function GroupSettingsPage() {
           ))}
         </div>
       </div>
+
+      {!group.isPublic && (
+        <div className="card space-y-3 p-5">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-muted" />
+            <h2 className="text-sm font-semibold">Invite someone</h2>
+          </div>
+          <p className="text-sm text-secondary">Create a single-use link that expires in 7 days. Anyone with the link can join this private group.</p>
+          <Button type="button" size="sm" isLoading={creatingInvite} disabled={creatingInvite} onClick={createInvite}>
+            <Link2 className="h-4 w-4" /> Create invite link
+          </Button>
+          {inviteError && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{inviteError}</p>}
+          {inviteUrl && (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input aria-label="Private group invite link" readOnly value={inviteUrl} onFocus={(event) => event.currentTarget.select()} />
+                <Button type="button" variant="secondary" size="sm" onClick={copyInvite}>
+                  <Copy className="h-4 w-4" /> {inviteCopied ? 'Copied' : 'Copy link'}
+                </Button>
+              </div>
+              <Button type="button" variant="danger" size="sm" className="self-start" isLoading={revokingInvite} disabled={revokingInvite} onClick={revokeInvite}>Revoke this link</Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Danger zone (owner only) */}
       {myRole === 'OWNER' && (

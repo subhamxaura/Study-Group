@@ -31,8 +31,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'date-fns'],
   },
-  // ensure platform-agnostic
-  swcMinify: true,
 }
 
 module.exports = nextConfig

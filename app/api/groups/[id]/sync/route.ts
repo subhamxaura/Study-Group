@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 const messageSelect = {
   id: true, kind: true, content: true, pinned: true, createdAt: true, updatedAt: true, deletedAt: true,
@@ -35,7 +35,7 @@ const PRESENCE_WINDOW_MS = 90_000
 
 // GET /api/groups/:id/sync?since=<iso>&vsince=<iso>
 export const GET = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const { searchParams } = new URL(req.url)
   const since = searchParams.get('since')
@@ -103,7 +103,7 @@ export const GET = withUser(async (user, req, ctx: Ctx) => {
 
 // POST /api/groups/:id/sync — typing ping
 export const POST = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const body = (await req.json().catch(() => ({}))) as { typing?: boolean }
   if (!typingMap.has(id)) typingMap.set(id, new Map())
@@ -115,7 +115,7 @@ export const POST = withUser(async (user, req, ctx: Ctx) => {
 
 // PATCH /api/groups/:id/sync — mark chat as read up to a timestamp (or now)
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   await requireMembership(id, user.id)
   const body = await parseBody(req, z.object({ lastReadAt: z.string().datetime().optional() }))
   const lastReadAt = body.lastReadAt ? new Date(body.lastReadAt) : new Date()

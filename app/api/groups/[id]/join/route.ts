@@ -4,13 +4,13 @@ import { requireMembership } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const POST = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const group = await prisma.group.findUnique({
     where: { id },
-    select: { id: true, name: true, isPublic: true, ownerId: true, maxMembers: true,
+    select: { id: true, name: true, isPublic: true, maxMembers: true,
       _count: { select: { members: true } } },
   })
   if (!group) return fail('Group not found', 404)
@@ -19,6 +19,8 @@ export const POST = withUser(async (user, _req, ctx: Ctx) => {
     where: { groupId_userId: { groupId: id, userId: user.id } },
   })
   if (existing) return ok({ joined: true, alreadyMember: true })
+
+  if (!group.isPublic) return fail('This is a private group. Ask an owner for an invitation.', 403)
 
   if (group.maxMembers && group._count.members >= group.maxMembers) {
     return fail('This group is full', 409)
@@ -45,7 +47,7 @@ export const POST = withUser(async (user, _req, ctx: Ctx) => {
 })
 
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const membership = await requireMembership(id, user.id)
   if (membership.role === 'OWNER') {
     return fail('Owners cannot leave their own group — transfer or delete it instead', 409)

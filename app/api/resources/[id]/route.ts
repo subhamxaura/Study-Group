@@ -4,11 +4,11 @@ import { requireMembership } from '@/lib/groups'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 // DELETE /api/resources/:id
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const resource = await prisma.resource.findUnique({
     where: { id },
     select: { id: true, uploaderId: true, groupId: true },
@@ -26,7 +26,7 @@ export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
 
 // PATCH /api/resources/:id?track=view|download — increments counters (must have access to the resource)
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const { searchParams } = new URL(req.url)
   const track = searchParams.get('track')
   if (track !== 'view' && track !== 'download') return fail('track must be view or download', 422)

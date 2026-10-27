@@ -1,14 +1,15 @@
 import { prisma } from '@/lib/prisma'
 import { ok, fail, withUser, parseBody } from '@/lib/api'
 import { requireMembership, requireRole } from '@/lib/groups'
+import { publishGroupMessageChange } from '@/lib/realtime'
 import { editMessageSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const data = await parseBody(req, editMessageSchema)
   const message = await prisma.message.findUnique({
     where: { id },
@@ -23,11 +24,12 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
     data: { content: data.content },
     select: { id: true, content: true, updatedAt: true },
   })
+  await publishGroupMessageChange(message.groupId, user.id)
   return ok({ message: updated })
 })
 
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const message = await prisma.message.findUnique({
     where: { id },
     select: { id: true, userId: true, groupId: true, deletedAt: true },
@@ -42,5 +44,6 @@ export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
     where: { id },
     data: { deletedAt: new Date(), content: '[deleted]' },
   })
+  await publishGroupMessageChange(message.groupId, user.id)
   return ok({ deleted: true })
 })

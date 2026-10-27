@@ -5,24 +5,29 @@ import { updateTaskSchema } from '@/lib/validation'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const task = await prisma.task.findUnique({
     where: { id },
     select: { id: true, groupId: true, creatorId: true, assigneeId: true, title: true },
   })
   if (!task) return fail('Task not found', 404)
 
-  let canEdit = task.creatorId === user.id || task.assigneeId === user.id
-  if (task.groupId && !canEdit) {
-    const m = await requireMembership(task.groupId, user.id)
-    canEdit = m.role === 'ADMIN' || m.role === 'OWNER'
-  }
+  const membership = task.groupId ? await requireMembership(task.groupId, user.id) : null
+  const canEdit = task.creatorId === user.id || task.assigneeId === user.id
+    || membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   if (!canEdit) return fail('You cannot edit this task', 403)
 
   const data = await parseBody(req, updateTaskSchema)
+  if (task.groupId && data.assigneeId) {
+    const assigneeMembership = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: task.groupId, userId: data.assigneeId } },
+      select: { id: true },
+    })
+    if (!assigneeMembership) return fail('Assignee must be a member of the group', 403)
+  }
   const updated = await prisma.task.update({
     where: { id },
     data: {
@@ -44,17 +49,14 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
 })
 
 export const DELETE = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const task = await prisma.task.findUnique({
     where: { id },
     select: { id: true, groupId: true, creatorId: true },
   })
   if (!task) return fail('Task not found', 404)
-  let canDelete = task.creatorId === user.id
-  if (task.groupId && !canDelete) {
-    const m = await requireMembership(task.groupId, user.id)
-    canDelete = m.role === 'ADMIN' || m.role === 'OWNER'
-  }
+  const membership = task.groupId ? await requireMembership(task.groupId, user.id) : null
+  const canDelete = task.creatorId === user.id || membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   if (!canDelete) return fail('You cannot delete this task', 403)
   await prisma.task.delete({ where: { id } })
   return ok({ deleted: true })

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -14,6 +15,11 @@ import { api } from '@/lib/client'
 import { cn } from '@/lib/utils'
 import { SessionDetailsModal } from '@/components/sessions/SessionDetailsModal'
 import type { GroupDetail, TaskItem, ResourceItem, NoteItem, MemberItem, SessionItem } from '@/types'
+
+const ChatWindow = dynamic(
+  () => import('@/components/chat/ChatWindow').then((module) => module.ChatWindow),
+  { loading: () => <div className="card flex min-h-[440px] items-center justify-center text-sm text-muted" role="status">Loading discussion…</div> },
+)
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
@@ -37,6 +43,7 @@ export default function GroupWorkspace() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
   const [onlineCount, setOnlineCount] = useState(0)
+  const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState('')
 
   const load = useCallback(() => {
@@ -53,12 +60,15 @@ export default function GroupWorkspace() {
   const canManage = myRole === 'OWNER' || myRole === 'ADMIN'
 
   const join = async () => {
+    setJoining(true)
     setJoinError('')
     try {
       await api.post(`/api/groups/${groupId}/join`)
       load()
-    } catch (err) {
-      setJoinError(err instanceof Error ? err.message : 'Could not join')
+    } catch (error) {
+      setJoinError(error instanceof Error ? error.message : 'Could not join this group.')
+    } finally {
+      setJoining(false)
     }
   }
 
@@ -87,9 +97,8 @@ export default function GroupWorkspace() {
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300"><ShieldCheck className="h-6 w-6" /></span>
           <h1 className="mt-4 text-lg font-semibold">{group.name}</h1>
           <p className="mt-1 text-sm text-secondary">{group.description}</p>
-          <p className="mt-4 text-sm text-muted">This is a private group. Join to see discussions, resources and sessions.</p>
-          <button onClick={join} className="btn btn-primary mt-4">Request to join</button>
-          {joinError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{joinError}</p>}
+          <p className="mt-4 text-sm text-muted">Private groups are invitation-only. Ask a group owner for an invite link to join.</p>
+          <Link href="/discover" className="btn btn-secondary mt-4">Back to Discover</Link>
         </div>
       </div>
     )
@@ -130,7 +139,10 @@ export default function GroupWorkspace() {
                 )}
               </>
             ) : (
-              <button onClick={join} className="btn btn-primary btn-sm">Join group</button>
+              <div className="flex flex-col items-end gap-1">
+                <button onClick={join} disabled={joining} className="btn btn-primary btn-sm">{joining ? 'Joining…' : 'Join group'}</button>
+                {joinError && <p className="max-w-48 text-right text-xs text-red-600 dark:text-red-400" role="alert">{joinError}</p>}
+              </div>
             )}
           </div>
         </div>
@@ -241,8 +253,6 @@ function GroupOverview({ groupId, group, canManage, onOpenTab }: {
 }
 
 // ---------------- Discussion (inline chat tab) ----------------
-
-import { ChatWindow } from '@/components/chat/ChatWindow'
 
 function GroupDiscussion({ groupId, isMember, members, onOnline }: { groupId: string; isMember: boolean; members: GroupDetail['members']; onOnline: (n: number) => void }) {
   if (!isMember) return <EmptyState icon={MessageCircle} title="Members only" description="Join the group to see the discussion." />

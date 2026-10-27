@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 const PARTICIPANT_STALE_MS = 60_000
 
@@ -23,7 +23,7 @@ const heartbeatSchema = z.object({
  * the same clock. `serverNow` lets clients correct for local clock drift.
  */
 export const GET = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const room = await prisma.focusRoom.findUnique({
     where: { id },
     select: {
@@ -76,7 +76,7 @@ export const GET = withUser(async (user, _req, ctx: Ctx) => {
 // PATCH /api/focus-rooms/:id — heartbeat (refresh presence + lastSeenAt),
 // pause, resume, or leave. Only the host may pause/resume the shared clock.
 export const PATCH = withUser(async (user, req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const body = await parseBody(req, heartbeatSchema)
 
   const room = await prisma.focusRoom.findUnique({
@@ -88,6 +88,13 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
 
   const isHost = room.hostId === user.id
   const now = Date.now()
+
+  if (body.action === 'pause' && !isHost) return fail('Only the room host can pause the session', 403)
+  if (body.action === 'pause' && room.status !== 'LIVE') return fail('Room is not running', 409)
+  if (body.action === 'resume' && !isHost) return fail('Only the room host can resume the session', 403)
+  if (body.action === 'resume' && (room.status !== 'PAUSED' || room.pausedAtMs === null)) {
+    return fail('Room is not paused', 409)
+  }
 
   if (body.action === 'leave') {
     await prisma.focusRoomParticipant.updateMany({
@@ -105,15 +112,11 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
   })
 
   if (body.action === 'pause') {
-    if (!isHost) return fail('Only the room host can pause the session', 403)
-    if (room.status !== 'LIVE') return fail('Room is not running', 409)
     await prisma.focusRoom.update({ where: { id }, data: { status: 'PAUSED', pausedAtMs: now } })
     return ok({ status: 'PAUSED' })
   }
 
   if (body.action === 'resume') {
-    if (!isHost) return fail('Only the room host can resume the session', 403)
-    if (room.status !== 'PAUSED' || room.pausedAtMs === null) return fail('Room is not paused', 409)
     // pausedAtMs/pausedTotalMs are BigInt (epoch ms exceeds Int4). Convert to
     // Number for arithmetic — safe: values are < 2^53.
     const pausedAt = Number(room.pausedAtMs)
@@ -132,7 +135,7 @@ export const PATCH = withUser(async (user, req, ctx: Ctx) => {
 // POST /api/focus-rooms/:id — complete the session and persist study logs.
 // Any participant completes their own log; the host can end the room itself.
 export const POST = withUser(async (user, _req, ctx: Ctx) => {
-  const { id } = ctx.params
+  const { id } = await ctx.params
   const room = await prisma.focusRoom.findUnique({
     where: { id },
     select: {

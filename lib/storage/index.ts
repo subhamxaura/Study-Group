@@ -96,29 +96,35 @@ class LocalStorageProvider implements StorageProvider {
 
 // ---------- Vercel Blob provider (production) ----------
 
-type BlobClient = typeof import('@vercel/blob/client')
+type BlobClient = typeof import('@vercel/blob')
 
 class BlobStorageProvider implements StorageProvider {
   readonly kind = 'BLOB' as const
 
   private async client(): Promise<BlobClient> {
-    return import('@vercel/blob/client')
+    return import('@vercel/blob')
   }
 
   async put(key: string, data: Buffer, mimeType: string) {
     const { put } = await this.client()
-    await put(key, data, { access: 'public', contentType: mimeType } as Parameters<typeof put>[2])
+    await put(key, data, { access: 'private', contentType: mimeType })
     return { key }
   }
 
-  async get(_key: string): Promise<Buffer> {
-    // Public blob access serves files straight from the stored URL.
-    throw new Error('Direct get is not used for blob storage; serve via stored url.')
+  async get(key: string): Promise<Buffer> {
+    const { get } = await this.client()
+    // New uploads are private. Fall back to provider-side public reads only for
+    // legacy objects created before private storage was enabled; the caller's
+    // group/uploader authorization has already been checked by the API route.
+    const result = await get(key, { access: 'private' }).catch(() => null)
+      ?? await get(key, { access: 'public' })
+    if (!result || result.statusCode !== 200) throw new Error('Blob not found or unavailable.')
+    return Buffer.from(await new Response(result.stream).arrayBuffer())
   }
 
   async delete(key: string) {
-    const client = (await this.client()) as BlobClient & { del?: (u: string) => Promise<void> }
-    await client.del?.(key).catch(() => {})
+    const { del } = await this.client()
+    await del(key).catch(() => {})
   }
 }
 

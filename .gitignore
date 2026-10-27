@@ -35,3 +35,8 @@ yarn-error.log*
 
 # tool-specific local artifacts
 /.freebuff/
+/.claude/
+/.cursor/
+/.agents/
+/.manus/
+/.planning/

@@ -193,13 +193,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="relative isolate flex h-full flex-col overflow-hidden">
       {/* Quad design mesh — visual only */}
       <div className="quad-mesh hidden dark:block" aria-hidden="true" />
-      <div className="flex shrink-0 items-center justify-between border-b border-[rgb(var(--sg-sidebar-border))] dark:border-white/[0.06] px-[18px] pb-[18px] pt-[20px]">
+      <div className="flex shrink-0 items-center justify-between border-b border-[rgb(var(--sg-sidebar-border))] px-[18px] pb-[18px] pt-[20px]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <BrandMark />
           {!sidebarCollapsed && (
             <span className="leading-tight">
-              <span className="block text-[14.5px] font-semibold tracking-[-0.01em]">Study-Group</span>
-              <span className="block text-[11.5px] font-normal text-muted">{user.name.split(' ')[0]} · Study workspace</span>
+              <span className="block text-[14.5px] font-semibold tracking-[-0.01em] text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">Study-Group</span>
+              <span className="block text-[11.5px] font-normal text-[#5A6B62] dark:text-muted">{user.name.split(' ')[0]} · Study workspace</span>
             </span>
           )}
         </Link>
@@ -228,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navSections.map((section) => (
             <div key={section.label}>
               {!sidebarCollapsed && (
-                <p className="px-[18px] pb-2 text-[11.5px] font-medium text-muted">{section.label}</p>
+                <p className="px-[18px] pb-2 text-[11.5px] font-medium text-[#5A6B62] dark:text-muted">{section.label}</p>
               )}
               <div className="space-y-0">
                 {section.items.map((item) => {
@@ -237,15 +237,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Link
                       key={item.label} href={item.href}
                       className={cn(
-                        'nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px] dark:text-[13.5px] dark:font-medium',
-                        isActive(item.href) ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive dark:hover:bg-white/[0.03]',
+                        'nav-item mx-2 px-3 py-2 text-[13.5px] rounded-[10px]',
+                        isActive(item.href) ? 'nav-item-active' : 'nav-item-inactive',
                       )}
                       title={sidebarCollapsed ? item.label : undefined}
                     >
                       <item.icon className="h-4 w-4 shrink-0 dark:h-[16px] dark:w-[16px]" />
                       {!sidebarCollapsed && <span>{item.label}</span>}
                       {!sidebarCollapsed && badgeValue !== null && (
-                        <span className="ml-auto rounded-full border border-[rgb(var(--sg-border))] bg-white/[0.07] px-[7px] py-px text-[11px] text-muted dark:border-white/[0.06]">
+                        <span className="ml-auto rounded-full border border-[rgb(var(--sg-border))] bg-[#D8F0E2] px-[7px] py-px text-[11px] font-semibold text-[#157343] dark:bg-[rgb(var(--sg-accent-soft))] dark:text-[rgb(var(--sg-accent))]">
                           {badgeValue}
                         </span>
                       )}
@@ -258,15 +258,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {!sidebarCollapsed && (
-          <div className="mt-2 border-t border-[rgb(var(--sg-sidebar-border))] pt-[10px] dark:border-white/[0.06]">
-            <p className="px-[18px] pb-2 text-[11.5px] font-medium text-muted">Groups</p>
+          <div className="mt-2 border-t border-[rgb(var(--sg-sidebar-border))] pt-[10px]">
+            <p className="px-[18px] pb-2 text-[11.5px] font-medium text-[#5A6B62] dark:text-muted">Groups</p>
             <div className="space-y-0">
               {myGroups.slice(0, 6).map((g, i) => (
                 <Link
                   key={g.id} href={`/groups/${g.id}`}
                   className={cn(
-                    'flex items-center gap-2.5 border-l-2 border-transparent px-[18px] py-[7px] text-[13px] transition-colors dark:rounded-none',
-                    pathname.startsWith(`/groups/${g.id}`) ? 'nav-item-active dark:quad-nav-active' : 'text-secondary hover:bg-[rgb(var(--sg-hover))] dark:text-[#9E9EB4] dark:hover:bg-white/[0.03] dark:hover:text-[#F1F1F5]'
+                    'nav-item mx-2 px-3 py-1.5 text-[13px] rounded-[10px] transition-colors',
+                    pathname.startsWith(`/groups/${g.id}`) ? 'nav-item-active' : 'nav-item-inactive'
                   )}
                 >
                   <span className={cn('quad-dot', dotClass[i % dotClass.length])} aria-hidden="true" />
@@ -287,28 +287,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </div>
 
-      <div className="shrink-0 border-t border-[rgb(var(--sg-sidebar-border))] px-2 py-2 dark:border-white/[0.06]">
+      <div className="shrink-0 border-t border-[rgb(var(--sg-sidebar-border))] px-2 py-2">
         {/* Quad user block — real user, links to profile (visual only, no logic change) */}
         {!sidebarCollapsed && (
           <Link href="/profile" className="mt-auto flex items-center gap-2.5 px-[8px] pb-2 pt-[14px]">
-            <span className={cn('grid h-8 w-8 flex-none place-items-center rounded-full border border-white/20 text-[12px] font-semibold text-white', avatarTone(user.name))} aria-hidden="true">
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full border border-[#CBE5D6] bg-[#D8F0E2] text-[#157343] text-[12px] font-bold dark:border-white/20 dark:text-white" aria-hidden="true">
               {initialsOf(user.name)}
             </span>
             <span className="leading-tight">
-              <span className="block text-[13px] font-semibold leading-[1.3]">{user.name.split(' ')[0]}</span>
-              <span className="block text-[11.5px] text-muted">View profile</span>
+              <span className="block text-[13px] font-semibold leading-[1.3] text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">{user.name.split(' ')[0]}</span>
+              <span className="block text-[11.5px] text-[#5A6B62] dark:text-muted">View profile</span>
             </span>
           </Link>
         )}
-        <Link href="/profile" className={cn('nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]', isActive('/profile') ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive')} title="Profile">
+        <Link href="/profile" className={cn('nav-item mx-2 px-3 py-2 rounded-[10px]', isActive('/profile') ? 'nav-item-active' : 'nav-item-inactive')} title="Profile">
           <Avatar name={user.name} src={user.avatarUrl} size="xs" />
           {!sidebarCollapsed && <span className="truncate text-sm">Profile</span>}
         </Link>
-        <Link href="/settings" className={cn('nav-item border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]', isActive('/settings') ? 'nav-item-active dark:quad-nav-active' : 'nav-item-inactive')}>
+        <Link href="/settings" className={cn('nav-item mx-2 px-3 py-2 rounded-[10px]', isActive('/settings') ? 'nav-item-active' : 'nav-item-inactive')}>
           <Settings className="h-[18px] w-[18px] dark:h-[16px] dark:w-[16px]" />
           {!sidebarCollapsed && <span>Settings</span>}
         </Link>
-        <button onClick={handleLogout} className="nav-item nav-item-inactive w-full border-l-2 border-transparent dark:rounded-none dark:px-[18px] dark:py-[8px]">
+        <button onClick={handleLogout} className="nav-item nav-item-inactive mx-2 w-[calc(100%-16px)] px-3 py-2 rounded-[10px]">
           <LogOut className="h-[18px] w-[18px] dark:h-[16px] dark:w-[16px]" />
           {!sidebarCollapsed && <span>Sign out</span>}
         </button>
@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop sidebar — Quad: 220px, #0A0A14 in dark */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] transition-all duration-200 dark:border-white/[0.06] dark:bg-[#0A0A14] lg:flex',
+          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] transition-all duration-200 lg:flex',
           sidebarCollapsed ? 'w-[68px]' : 'w-[220px]'
         )}
       >
@@ -338,7 +338,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
             <motion.aside
               initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] dark:border-white/[0.06] dark:bg-[#0A0A14] lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] lg:hidden"
             >
               {sidebar}
             </motion.aside>
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main column — Quad: 0 28px 40px content padding lives on pages */}
       <div className={cn('relative z-[1] flex min-h-screen w-full flex-col transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[220px]')}>
         {/* Topbar — Quad: sticky gradient fade, 460px search, 36px icon-btn, primary New session */}
-        <header className="sticky top-0 z-20 border-b border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-background))]/95 backdrop-blur dark:border-transparent dark:bg-gradient-to-b dark:from-[#08080F] dark:via-[#08080F]/85 dark:to-transparent">
+        <header className="sticky top-0 z-20 border-b border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-background))]/95 backdrop-blur">
           <div className="flex min-h-[60px] items-center gap-[14px] px-4 py-[18px] pb-[env(safe-area-inset-bottom)] sm:px-7">
             <div className="relative flex-1 md:max-w-[460px]">
               <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-muted hover:bg-[rgb(var(--sg-hover))] lg:hidden" aria-label="Open menu">
@@ -357,12 +357,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
               <button
                 onClick={() => setCommandOpen(true)}
-                className="hidden w-full items-center gap-2 rounded-[10px] border border-[#D8E6DD] bg-[#EDF2EF] py-[9px] pl-[34px] pr-[40px] text-left text-[13.5px] text-[#5A6B62] transition-colors hover:border-[#157343]/50 dark:border-white/[0.07] dark:bg-[#0F0F1A] dark:text-muted md:flex"
+                className="hidden w-full items-center gap-2 rounded-[10px] border border-[#D8E6DD] bg-[#EDF2EF] py-[9px] pl-[34px] pr-[40px] text-left text-[13.5px] text-[#5A6B62] transition-colors hover:border-[#157343]/50 dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-surface-muted))] dark:text-[rgb(var(--sg-muted))] md:flex"
                 aria-label="Search sessions, notes, files"
               >
                 <Search className="absolute left-3 h-[15px] w-[15px] text-[#5A6B62] dark:text-muted" aria-hidden="true" />
                 <span>Search sessions, notes, files…</span>
-                <kbd className="absolute right-[10px] rounded-md border border-[#D8E6DD] bg-[#DDE5E0] px-1.5 py-px font-sans text-[11px] text-[#5A6B62] dark:border-white/10 dark:bg-white/[0.03] dark:text-muted">⌘K</kbd>
+                <kbd className="absolute right-[10px] rounded-md border border-[#D8E6DD] bg-[#DDE5E0] px-1.5 py-px font-sans text-[11px] text-[#5A6B62] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))] dark:text-[rgb(var(--sg-muted))]">⌘K</kbd>
               </button>
               {/* Compact search affordance on small screens — one tap to the palette */}
               <button
@@ -381,9 +381,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/calendar?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex rounded-full">
                 New session
               </Link>
-              <ThemeToggle className="quad-icon-btn grid h-9 w-9 place-items-center rounded-[10px]" />
+              <ThemeToggle className="grid h-9 w-9 place-items-center rounded-full border border-[#D8E6DD] bg-white text-[#5A6B62] transition hover:bg-[#EDF2EF] hover:text-[#0F1F17] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))] dark:text-muted" />
               <NotificationCenter trigger={(
-                <button className="quad-icon-btn relative grid h-9 w-9 place-items-center rounded-[10px] text-muted transition-colors hover:text-[rgb(var(--sg-foreground))]" aria-label={`Notifications (${notifCount} unread)`}>
+                <button className="relative grid h-9 w-9 place-items-center rounded-full border border-[#D8E6DD] bg-white text-[#5A6B62] transition hover:bg-[#EDF2EF] hover:text-[#0F1F17] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))] dark:text-muted" aria-label={`Notifications (${notifCount} unread)`}>
                   <Bell className="h-[17px] w-[17px]" />
                   {notifCount > 0 && (
                     <span className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-[rgb(var(--sg-danger))] ring-2 ring-[rgb(var(--sg-surface))]" aria-hidden="true" />

@@ -2,6 +2,7 @@
 import { useEffect } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useUIStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const theme = useUIStore((s) => s.theme)
@@ -16,7 +17,10 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className={`rounded-lg p-2 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))] ${className}`}
+      className={cn(
+        'rounded-lg p-2 text-muted transition-colors hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))]',
+        className
+      )}
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

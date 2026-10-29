@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 5 }
 
 // Theme bootstrap — restores saved theme (or defaults to light botanical mode) before hydration.
-const themeInit = `(function(){try{var t=localStorage.getItem('sg-theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`
+const themeInit = `(function(){try{var t=localStorage.getItem('sg-theme')||'light';if(t==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

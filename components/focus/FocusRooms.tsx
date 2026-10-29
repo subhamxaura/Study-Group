@@ -263,8 +263,8 @@ export function FocusRooms({ onRoomCompleted }: { onRoomCompleted?: (c: RoomComp
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--sg-accent-soft))] text-[rgb(var(--sg-accent))] dark:text-[rgb(var(--sg-accent-muted))]">
             <Radio className="h-6 w-6" />
           </span>
-          <p className="mt-3 text-sm font-medium">No live focus rooms right now</p>
-          <p className="mt-1 max-w-sm text-xs leading-relaxed text-secondary">
+          <p className="mt-3 text-sm font-semibold text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">No live focus rooms right now</p>
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-[#2C4035] dark:text-secondary">
             Start one and study alongside others — a shared timer makes it easier to stay in the chair.
           </p>
           <div className="mt-4 flex items-center gap-2">

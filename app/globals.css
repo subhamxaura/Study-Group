@@ -66,7 +66,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    color-scheme: dark;
+    color-scheme: light;
     overflow-x: clip;
   }
   html.dark { color-scheme: dark; }
@@ -194,23 +194,41 @@
     color: #115E38;
     font-weight: 600;
   }
+  .nav-item-active svg {
+    color: #115E38;
+  }
   .dark .nav-item-active {
     background-color: rgb(var(--sg-accent) / 0.12);
     color: rgb(var(--sg-accent-muted));
     font-weight: 500;
   }
+  .dark .nav-item-active svg {
+    color: rgb(var(--sg-accent-muted));
+  }
   .nav-item-inactive {
     color: #2C3A33;
   }
+  .nav-item-inactive svg {
+    color: #5A6B62;
+  }
   .nav-item-inactive:hover {
-    background-color: rgba(210, 232, 218, 0.4);
+    background-color: rgba(210, 232, 218, 0.5);
+    color: #115E38;
+  }
+  .nav-item-inactive:hover svg {
     color: #115E38;
   }
   .dark .nav-item-inactive {
     color: rgb(var(--sg-secondary));
   }
+  .dark .nav-item-inactive svg {
+    color: rgb(var(--sg-muted));
+  }
   .dark .nav-item-inactive:hover {
     background-color: rgb(var(--sg-hover));
+    color: rgb(var(--sg-foreground));
+  }
+  .dark .nav-item-inactive:hover svg {
     color: rgb(var(--sg-foreground));
   }
 

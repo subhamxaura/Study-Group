@@ -13,11 +13,11 @@ interface AvatarProps {
 const sizeClasses = { xs: 'h-6 w-6 text-[10px]', sm: 'h-7 w-7 text-xs', md: 'h-9 w-9 text-sm', lg: 'h-12 w-12 text-base', xl: 'h-20 w-20 text-lg' }
 const statusSize = { xs: 'h-1.5 w-1.5', sm: 'h-2 w-2', md: 'h-2.5 w-2.5', lg: 'h-3 w-3', xl: 'h-4 w-4' }
 const bg = [
-  'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',
-  'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
-  'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
-  'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  'bg-[#D8F0E2] text-[#157343] dark:bg-emerald-500/20 dark:text-emerald-300',
+  'bg-[#E0EFE6] text-[#115E38] dark:bg-teal-500/20 dark:text-teal-300',
+  'bg-[#E8F4EC] text-[#14633A] dark:bg-green-500/20 dark:text-green-300',
+  'bg-[#FDE6C4] text-[#9A5B13] dark:bg-amber-500/20 dark:text-amber-300',
+  'bg-[#D2E8DA] text-[#157343] dark:bg-emerald-600/20 dark:text-emerald-200',
 ]
 
 export function Avatar({ src, alt, name, size = 'md', status, className }: AvatarProps) {

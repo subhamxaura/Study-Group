@@ -14,8 +14,8 @@ export function EmptyState({ icon: Icon, title, description, action, compact }: 
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--sg-accent-soft))] text-[rgb(var(--sg-accent))]">
         <Icon className="h-6 w-6" />
       </div>
-      <p className="mt-4 font-medium">{title}</p>
-      {description && <p className="mx-auto mt-1 max-w-sm text-sm text-secondary">{description}</p>}
+      <p className="mt-4 font-semibold text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">{title}</p>
+      {description && <p className="mx-auto mt-1 max-w-sm text-sm text-[#2C4035] dark:text-secondary">{description}</p>}
       {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
   )

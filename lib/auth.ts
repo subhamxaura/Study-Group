@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 
 const COOKIE_NAME = 'sg_session'
-const SESSION_DAYS = 7
+const SESSION_DAYS = 30 // Extended 30-day lifetime so user does not need to log in repeatedly
 
 export type SafeUser = {
   id: string
@@ -54,8 +54,8 @@ function getSecret(): string {
   return secret
 }
 
-export function signSession(userId: string): string {
-  return jwt.sign({ sub: userId }, getSecret(), { expiresIn: '7d' })
+export function signSession(userId: string, expiresInDays = SESSION_DAYS): string {
+  return jwt.sign({ sub: userId }, getSecret(), { expiresIn: `${expiresInDays}d` })
 }
 
 export function verifySessionToken(token: string): string | null {
@@ -77,9 +77,10 @@ export function sessionCookieOptions(maxAgeDays = SESSION_DAYS) {
   }
 }
 
-export async function createSessionCookie(userId: string) {
+export async function createSessionCookie(userId: string, rememberMe = true) {
+  const days = rememberMe ? SESSION_DAYS : 1
   const jar = await cookies()
-  jar.set(COOKIE_NAME, signSession(userId), sessionCookieOptions())
+  jar.set(COOKIE_NAME, signSession(userId, days), sessionCookieOptions(days))
 }
 
 export async function clearSessionCookie() {

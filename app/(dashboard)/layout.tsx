@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Compass, MessageCircle, Calendar, BookOpen,
   CheckSquare, Timer, BarChart3, Bell, Settings, LogOut, Menu, X, Search, Plus, BookMarked, Brain,
 } from 'lucide-react'
-import { Avatar, Button, Badge, ToastViewport } from '@/components/ui'
+import { Avatar, Button, Badge, ToastViewport, ThemeToggle } from '@/components/ui'
 import { CommandPalette } from '@/components/shell/CommandPalette'
 import { NotificationCenter } from '@/components/shell/NotificationCenter'
 import { StudymatePanel, StudymateButton } from '@/components/studymate/StudymatePanel'
@@ -21,7 +21,7 @@ const OnboardingWizardLazy = dynamic(
   () => import('@/components/onboarding/OnboardingWizard').then((m) => m.OnboardingWizard),
   { loading: () => (
     <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--sg-background))]">
-      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[rgb(var(--sg-accent))] border-t-transparent" />
     </div>
   ) },
 )
@@ -152,15 +152,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.refresh()
   }, [logout, router])
 
-  if (isLoading || !user) {
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`)
+    }
+  }, [isLoading, user, pathname, router])
+
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--sg-background))]">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[rgb(var(--sg-accent))] border-t-transparent" />
           <p className="mt-3 text-sm text-muted">Loading workspace…</p>
         </div>
       </div>
     )
+  }
+
+  if (!user) {
+    return null
   }
 
   // Block the workspace behind the one-time wizard (full-screen)
@@ -263,7 +273,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span className="truncate font-normal not-italic">{g.name}</span>
                   <span className="ml-auto text-[11px] text-muted">{g.memberCount}</span>
                   {!!g.unreadCount && (
-                    <span className="quad-pulse h-2 w-2 shrink-0 rounded-full bg-[#5B8DEF]" aria-label={`${g.unreadCount} unread messages`} />
+                    <span className="quad-pulse h-2 w-2 shrink-0 rounded-full bg-[rgb(var(--sg-accent))]" aria-label={`${g.unreadCount} unread messages`} />
                   )}
                 </Link>
               ))}
@@ -371,11 +381,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/calendar?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
                 New session
               </Link>
+              <ThemeToggle className="quad-icon-btn grid h-9 w-9 place-items-center rounded-[10px]" />
               <NotificationCenter trigger={(
                 <button className="quad-icon-btn relative grid h-9 w-9 place-items-center rounded-[10px] text-muted transition-colors hover:text-[rgb(var(--sg-foreground))]" aria-label={`Notifications (${notifCount} unread)`}>
                   <Bell className="h-[17px] w-[17px]" />
                   {notifCount > 0 && (
-                    <span className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-[#F87171] ring-2 ring-[#0F0F1A]" aria-hidden="true" />
+                    <span className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-[rgb(var(--sg-danger))] ring-2 ring-[rgb(var(--sg-surface))]" aria-hidden="true" />
                   )}
                 </button>
               )} onCountChange={setNotifCount} />
@@ -403,7 +414,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.label} href={item.href}
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition-colors',
-                  active ? 'text-indigo-600 dark:text-[#8AA8F5]' : 'text-muted'
+                  active ? 'text-[rgb(var(--sg-accent))]' : 'text-muted'
                 )}
               >
                 {item.label === 'Profile'
@@ -436,7 +447,7 @@ function PanelLeft({ className }: { className?: string }) {
 function BrandMark() {
   return (
     <span className="quad-brand-mark font-display grid h-[30px] w-[30px] flex-none place-items-center rounded-[9px] text-[16px] font-semibold text-white" aria-hidden="true">
-      Q
+      <svg className="h-[18px] w-[18px] text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
     </span>
   )
 }

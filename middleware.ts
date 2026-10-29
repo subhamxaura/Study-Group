@@ -3,6 +3,22 @@ import type { NextRequest } from 'next/server'
 
 const SESSION_COOKIE = 'sg_session'
 
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/groups',
+  '/focus',
+  '/calendar',
+  '/tasks',
+  '/discover',
+  '/messages',
+  '/resources',
+  '/notes',
+  '/analytics',
+  '/my-study',
+  '/profile',
+  '/settings',
+]
+
 // Lightweight edge check: presence of session cookie. Full JWT verification
 // happens server-side (layouts + API routes) — this just avoids rendering
 // protected pages for obviously unauthenticated visitors.
@@ -11,7 +27,7 @@ export function middleware(req: NextRequest) {
   const hasSession = Boolean(req.cookies.get(SESSION_COOKIE)?.value)
 
   const isAuthPage = pathname === '/login' || pathname === '/register'
-  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/groups')
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
   if (isProtected && !hasSession) {
     const url = req.nextUrl.clone()
@@ -31,5 +47,21 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/groups/:path*', '/login', '/register'],
+  matcher: [
+    '/dashboard/:path*',
+    '/groups/:path*',
+    '/focus/:path*',
+    '/calendar/:path*',
+    '/tasks/:path*',
+    '/discover/:path*',
+    '/messages/:path*',
+    '/resources/:path*',
+    '/notes/:path*',
+    '/analytics/:path*',
+    '/my-study/:path*',
+    '/profile/:path*',
+    '/settings/:path*',
+    '/login',
+    '/register',
+  ],
 }

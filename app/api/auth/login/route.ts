@@ -26,6 +26,6 @@ export const POST = withRoute(async (req: Request) => {
     create: { userId: user.id },
   })
 
-  await createSessionCookie(user.id)
+  await createSessionCookie(user.id, data.rememberMe ?? true)
   return ok({ user: toSafeUser(user) })
 })

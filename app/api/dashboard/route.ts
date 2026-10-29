@@ -62,25 +62,37 @@ export const GET = withUser(async (user) => {
     .filter((l) => { const d = new Date(l.startedAt); const t = new Date(); return d.toDateString() === t.toDateString() })
     .reduce((s, l) => s + l.durationMinutes, 0)
 
-  // Per-group recent activity counts for cards
-  const groupsWithMeta = await Promise.all(myMemberships.map(async (m) => {
-    const [msgCount, resCount, nextSession] = await Promise.all([
-      prisma.message.count({ where: { groupId: m.group.id, createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
-      prisma.resource.count({ where: { groupId: m.group.id } }),
-      prisma.studySession.findFirst({
-        where: { groupId: m.group.id, startsAt: { gte: now } },
-        orderBy: { startsAt: 'asc' },
-        select: { startsAt: true },
-      }),
-    ])
-    return {
-      ...m.group,
-      memberCount: m.group._count.members,
-      myRole: m.role,
-      weeklyMessages: msgCount,
-      resourceCount: resCount,
-      nextSessionAt: nextSession?.startsAt ?? null,
-    }
+  // Batch aggregate per-group metrics in 3 queries instead of 3 * N queries
+  const [weeklyMsgCounts, resCounts, nextGroupSessions] = await Promise.all([
+    myGroupIds.length === 0 ? [] : prisma.message.groupBy({
+      by: ['groupId'],
+      where: { groupId: { in: myGroupIds }, createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
+      _count: { _all: true },
+    }),
+    myGroupIds.length === 0 ? [] : prisma.resource.groupBy({
+      by: ['groupId'],
+      where: { groupId: { in: myGroupIds } },
+      _count: { _all: true },
+    }),
+    myGroupIds.length === 0 ? [] : prisma.studySession.findMany({
+      where: { groupId: { in: myGroupIds }, startsAt: { gte: now } },
+      orderBy: { startsAt: 'asc' },
+      distinct: ['groupId'],
+      select: { groupId: true, startsAt: true },
+    }),
+  ])
+
+  const msgMap = new Map<string, number>(weeklyMsgCounts.flatMap((c) => c.groupId ? [[c.groupId, c._count._all]] : []))
+  const resMap = new Map<string, number>(resCounts.flatMap((c) => c.groupId ? [[c.groupId, c._count._all]] : []))
+  const nextSessionMap = new Map<string, Date>(nextGroupSessions.flatMap((s) => s.groupId ? [[s.groupId, s.startsAt]] : []))
+
+  const groupsWithMeta = myMemberships.map((m) => ({
+    ...m.group,
+    memberCount: m.group._count.members,
+    myRole: m.role,
+    weeklyMessages: msgMap.get(m.group.id) ?? 0,
+    resourceCount: resMap.get(m.group.id) ?? 0,
+    nextSessionAt: nextSessionMap.get(m.group.id)?.toISOString() ?? null,
   }))
 
   const activity = [

@@ -21,7 +21,7 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
-  const { user } = useSession()
+  const { user, setUser } = useSession()
   const searchParams = useSearchParams()
   const viewUserId = searchParams.get('userId')
   const [data, setData] = useState<ProfileData | null>(null)
@@ -62,6 +62,17 @@ export default function ProfilePage() {
         subjects: form.subjects.split(',').map((s) => s.trim()).filter(Boolean),
         interests: [],
       })
+      if (user) {
+        setUser({
+          ...user,
+          name: form.name,
+          bio: form.bio || null,
+          university: form.university || null,
+          course: form.course || null,
+          semester: form.semester || null,
+          subjects: form.subjects.split(',').map((s) => s.trim()).filter(Boolean),
+        })
+      }
       setEditOpen(false)
       load()
     } finally {

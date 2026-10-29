@@ -17,16 +17,50 @@ export const useSession = create<SessionState>((set) => ({
   user: null,
   isLoading: true,
   initialized: false,
-  setUser: (user) => set({ user, isLoading: false, initialized: true }),
+  setUser: (user) => {
+    if (typeof window !== 'undefined') {
+      if (user) {
+        try { window.localStorage.setItem('sg-user-cache', JSON.stringify(user)) } catch {}
+      } else {
+        try { window.localStorage.removeItem('sg-user-cache') } catch {}
+      }
+    }
+    set({ user, isLoading: false, initialized: true })
+  },
   logout: async () => {
     try { await api.post('/api/auth/logout') } catch { /* cookie already gone */ }
-    set({ user: null })
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.removeItem('sg-user-cache') } catch {}
+    }
+    set({ user: null, initialized: true, isLoading: false })
   },
   init: async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = window.localStorage.getItem('sg-user-cache')
+        if (cached) {
+          const parsed = JSON.parse(cached) as SafeUser
+          set({ user: parsed, isLoading: false })
+        }
+      } catch {}
+    }
     try {
       const { user } = await api.get<{ user: SafeUser | null }>('/api/auth/me')
-      set({ user, isLoading: false, initialized: true })
+      if (user) {
+        if (typeof window !== 'undefined') {
+          try { window.localStorage.setItem('sg-user-cache', JSON.stringify(user)) } catch {}
+        }
+        set({ user, isLoading: false, initialized: true })
+      } else {
+        if (typeof window !== 'undefined') {
+          try { window.localStorage.removeItem('sg-user-cache') } catch {}
+        }
+        set({ user: null, isLoading: false, initialized: true })
+      }
     } catch {
+      if (typeof window !== 'undefined') {
+        try { window.localStorage.removeItem('sg-user-cache') } catch {}
+      }
       set({ user: null, isLoading: false, initialized: true })
     }
   },
@@ -49,30 +83,41 @@ interface UIState {
 }
 
 function getInitialTheme(): 'dark' | 'light' {
-  // Single-theme app — dark only.
-  return 'dark'
+  if (typeof window !== 'undefined') {
+    const saved = window.localStorage.getItem('sg-theme')
+    if (saved === 'dark' || saved === 'light') return saved
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return 'light'
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
-  theme: 'dark',
+  theme: 'light',
   sidebarCollapsed: false,
   commandOpen: false,
   notifOpen: false,
   studymateOpen: false,
   toggleTheme: () => {
-    // Single-theme app — always dark.
-    set({ theme: 'dark' })
+    const next = get().theme === 'dark' ? 'light' : 'dark'
+    set({ theme: next })
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('sg-theme', 'dark')
-      document.documentElement.classList.add('dark')
+      window.localStorage.setItem('sg-theme', next)
+      if (next === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
     }
   },
-  setTheme: () => {
-    // Single-theme app — always dark.
-    set({ theme: 'dark' })
+  setTheme: (t: 'dark' | 'light') => {
+    set({ theme: t })
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('sg-theme', 'dark')
-      document.documentElement.classList.add('dark')
+      window.localStorage.setItem('sg-theme', t)
+      if (t === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
     }
   },
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),

@@ -250,9 +250,9 @@ export function FocusRooms({ onRoomCompleted }: { onRoomCompleted?: (c: RoomComp
 
   // ---------- Rooms discovery + create ----------
   return (
-    <div className="card p-4" data-testid="focus-rooms-strip">
+    <div className="rounded-xl border border-[#DCEBE1] bg-[#F2F8F4] p-4 dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-surface-muted))]" data-testid="focus-rooms-strip">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><Radio className="h-4 w-4 text-indigo-500" /> Live focus rooms</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-[rgb(var(--sg-foreground))]"><Radio className="h-4 w-4 text-[#157343] dark:text-[rgb(var(--sg-accent))]" /> Live focus rooms</p>
         <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Create room</Button>
       </div>
 

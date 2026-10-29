@@ -4,25 +4,30 @@
 
 @layer base {
   :root {
-    /* Light — Botanical Sanctuary / Plant Store palette (#F8F9F5 base, #2D6A4F forest green accent, #52B788 sage) */
-    --sg-background: 248 249 245;
-    --sg-surface: 255 255 255;
-    --sg-surface-muted: 244 246 241;
-    --sg-card: 255 255 255;
+    /* Light — Botanical Sanctuary dashboard theme matching reference design */
+    --sg-background: 247 250 248; /* #F7FAF8 — Main App Background */
+    --sg-surface: 255 255 255; /* #FFFFFF — Pure white primary surface */
+    --sg-surface-muted: 242 248 244; /* #F2F8F4 — Nested/Inner cards */
+    --sg-sidebar: 235 244 238; /* #EBF4EE — Left Sidebar background */
+    --sg-sidebar-border: 216 230 221; /* #D8E6DD — Sidebar right border */
+    --sg-card: 255 255 255; /* #FFFFFF — Primary Cards */
     --sg-elevated: 255 255 255;
-    --sg-hover: 235 245 238;
-    --sg-border: 226 232 222;
-    --sg-foreground: 27 50 36;
-    --sg-secondary: 64 86 72;
-    --sg-muted: 116 135 122;
-    --sg-accent: 45 106 79;
-    --sg-accent-muted: 27 67 50;
-    --sg-accent-soft: 232 245 233;
-    --sg-success: 82 183 136;
+    --sg-hover: 235 244 238; /* #EBF4EE */
+    --sg-border: 228 236 231; /* #E4ECE7 — 1px solid card border */
+    --sg-border-inner: 220 235 225; /* #DCEBE1 — Nested card border */
+    --sg-foreground: 15 31 23; /* #0F1F17 — Primary Headings & Numbers */
+    --sg-secondary: 44 58 51; /* #2C3A33 — Secondary Body & Inactive links */
+    --sg-muted: 90 107 98; /* #5A6B62 — Muted Labels & Section Headers */
+    --sg-accent: 21 115 67; /* #157343 — Rich forest green primary */
+    --sg-accent-hover: 17 94 56; /* #115E38 — Forest green hover state */
+    --sg-accent-muted: 20 99 58; /* #14633A — Accent phrase */
+    --sg-accent-soft: 216 240 226; /* #D8F0E2 — Soft mint badge & icon container */
+    --sg-track: 234 239 236; /* #EAEFEC — Progress bar track */
+    --sg-success: 21 115 67;
     --sg-warning: 217 119 6;
     --sg-danger: 225 29 72;
-    --radius-card: 18px;
-    --radius-control: 12px;
+    --radius-card: 16px;
+    --radius-control: 9999px;
   }
 
   .dark {
@@ -30,20 +35,27 @@
     --sg-background: 10 22 15;
     --sg-surface: 14 31 21;
     --sg-surface-muted: 18 38 27;
+    --sg-sidebar: 10 22 15;
+    --sg-sidebar-border: 28 54 36;
     --sg-card: 14 31 21;
     --sg-elevated: 20 44 30;
     --sg-hover: 25 54 37;
     --sg-border: 28 54 36;
+    --sg-border-inner: 28 54 36;
     --sg-foreground: 232 243 235;
     --sg-secondary: 162 189 170;
     --sg-muted: 108 135 116;
     --sg-accent: 82 183 136;
+    --sg-accent-hover: 116 198 157;
     --sg-accent-muted: 116 198 157;
     --sg-accent-soft: 27 67 50;
     --sg-violet: 116 198 157;
+    --sg-track: 28 54 36;
     --sg-success: 82 183 136;
     --sg-warning: 251 191 36;
     --sg-danger: 240 106 120;
+    --radius-card: 16px;
+    --radius-control: 9999px;
   }
 
   * {
@@ -92,7 +104,16 @@
   /* Surfaces */
   .card {
     border-radius: var(--radius-card);
-    @apply border bg-[rgb(var(--sg-card))] shadow-sm;
+    @apply border bg-[rgb(var(--sg-card))];
+    box-shadow: 0 4px 12px rgba(15, 31, 23, 0.04);
+  }
+  .dark .card {
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+  }
+  .card-inner {
+    border-radius: 12px;
+    background-color: rgb(var(--sg-surface-muted));
+    border: 1px solid rgb(var(--sg-border-inner));
   }
   .card-elevated {
     border-radius: var(--radius-card);
@@ -109,17 +130,17 @@
     @apply shadow-md -translate-y-[1px];
   }
 
-  /* Buttons — 10px control radius, 150ms feedback */
+  /* Buttons — pill-shaped control radius, 150ms feedback */
   .btn {
     border-radius: var(--radius-control);
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sg-accent))]/30 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
     --tw-ring-offset-color: rgb(var(--sg-background));
   }
   .btn-primary {
-    @apply btn bg-[rgb(var(--sg-accent))] text-white hover:bg-[rgb(var(--sg-accent-muted))] active:scale-[0.98] shadow-sm;
+    @apply btn bg-[rgb(var(--sg-accent))] text-white hover:bg-[rgb(var(--sg-accent-hover))] active:scale-[0.98] shadow-sm rounded-full;
   }
   .btn-secondary {
-    @apply btn bg-[rgb(var(--sg-card))] text-[rgb(var(--sg-foreground))] border hover:bg-[rgb(var(--sg-hover))] active:scale-[0.98] shadow-sm;
+    @apply btn bg-white text-[#14422A] border border-[#8EB8A0] hover:bg-[#F2F8F4] active:scale-[0.98] shadow-sm rounded-full dark:bg-[rgb(var(--sg-card))] dark:text-[rgb(var(--sg-foreground))] dark:border-[rgb(var(--sg-border))] dark:hover:bg-[rgb(var(--sg-hover))];
   }
   .btn-ghost {
     @apply btn bg-transparent text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))] active:scale-[0.98];
@@ -132,8 +153,7 @@
   }
   .btn-danger:hover { background: rgb(var(--sg-danger) / 0.14); }
   .btn-outline {
-    @apply btn bg-transparent text-[rgb(var(--sg-foreground))] border hover:bg-[rgb(var(--sg-hover))] active:scale-[0.98];
-    border-color: rgb(var(--sg-border));
+    @apply btn bg-transparent text-[#14422A] border border-[#8EB8A0] hover:bg-[#F2F8F4] active:scale-[0.98] rounded-full dark:text-[rgb(var(--sg-foreground))] dark:border-[rgb(var(--sg-border))] dark:hover:bg-[rgb(var(--sg-hover))];
   }
   .btn-sm { @apply px-3 py-1.5 text-xs gap-1.5; }
   .btn-lg { @apply px-6 py-3 text-sm gap-2; }
@@ -154,12 +174,13 @@
   }
   .badge-accent {
     @apply badge;
-    background: rgb(var(--sg-accent) / 0.09);
+    background: rgb(var(--sg-accent-soft));
     color: rgb(var(--sg-accent));
-    border-color: rgb(var(--sg-accent) / 0.22);
+    border-color: rgb(var(--sg-border-inner));
   }
   .dark .badge-accent {
     color: rgb(var(--sg-accent-muted));
+    border-color: rgb(var(--sg-accent) / 0.22);
   }
   .badge-muted {
     @apply badge bg-[rgb(var(--sg-surface-muted))] text-[rgb(var(--sg-secondary))] border-[rgb(var(--sg-border))];
@@ -169,12 +190,28 @@
     @apply flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors;
   }
   .nav-item-active {
-    background: rgb(var(--sg-accent) / 0.09);
-    color: rgb(var(--sg-accent));
+    background-color: #D2E8DA;
+    color: #115E38;
+    font-weight: 600;
   }
-  .dark .nav-item-active { color: rgb(var(--sg-accent-muted)); }
+  .dark .nav-item-active {
+    background-color: rgb(var(--sg-accent) / 0.12);
+    color: rgb(var(--sg-accent-muted));
+    font-weight: 500;
+  }
   .nav-item-inactive {
-    @apply text-[rgb(var(--sg-secondary))] hover:bg-[rgb(var(--sg-hover))] hover:text-[rgb(var(--sg-foreground))];
+    color: #2C3A33;
+  }
+  .nav-item-inactive:hover {
+    background-color: rgba(210, 232, 218, 0.4);
+    color: #115E38;
+  }
+  .dark .nav-item-inactive {
+    color: rgb(var(--sg-secondary));
+  }
+  .dark .nav-item-inactive:hover {
+    background-color: rgb(var(--sg-hover));
+    color: rgb(var(--sg-foreground));
   }
 
   .section-container { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8; }

@@ -245,18 +245,18 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 pb-16 pt-3 sm:px-7">
       
-      {/* Botanical Sanctuary Hero Banner (Wix Plant Store Inspired) */}
-      <section className="relative overflow-hidden rounded-3xl border border-[rgb(var(--sg-border))] bg-gradient-to-r from-[rgb(var(--sg-surface))] via-[rgb(var(--sg-hover))] to-[rgb(var(--sg-surface))] p-6 sm:p-8 shadow-sm">
+      {/* Botanical Sanctuary Hero Banner (Reference Design Matched) */}
+      <section className="relative overflow-hidden rounded-[16px] border border-[#CBE5D6] bg-[#E3F3E9] p-6 sm:p-8 shadow-sm dark:border-[rgb(var(--sg-border))] dark:bg-gradient-to-r dark:from-[rgb(var(--sg-surface))] dark:via-[rgb(var(--sg-hover))] dark:to-[rgb(var(--sg-surface))]">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--sg-accent))]/30 bg-[rgb(var(--sg-accent-soft))] px-3 py-1 text-xs font-semibold text-[rgb(var(--sg-accent))]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#FDE6C4] bg-[#FDE6C4] px-3 py-1 text-xs font-semibold text-[#9A5B13] dark:border-[rgb(var(--sg-accent))]/30 dark:bg-[rgb(var(--sg-accent-soft))] dark:text-[rgb(var(--sg-accent))]">
               <span>🌱</span>
               <span><StreakCount target={streak} />-Day Study Growth Streak</span>
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">
-              {greeting()}, {firstName}. <span className="font-normal text-[rgb(var(--sg-accent))]">Cultivate your knowledge.</span>
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">
+              {greeting()}, {firstName}. <span className="font-normal text-[#14633A] dark:text-[rgb(var(--sg-accent))]">Cultivate your knowledge.</span>
             </h1>
-            <p className="max-w-xl text-xs sm:text-sm text-secondary">
+            <p className="max-w-xl text-xs sm:text-sm text-[#2C4035] dark:text-secondary">
               {data.groups.length === 0
                 ? 'Join a study circle to share lecture notes, join focus rooms, and track deadlines together.'
                 : `You have ${sessionsWeek} session${sessionsWeek === 1 ? '' : 's'} scheduled this week and ${tasksOpen} task${tasksOpen === 1 ? '' : 's'} blooming.`}
@@ -272,18 +272,18 @@ export default function DashboardPage() {
               onClick={() => setStudymateOpen(true)}
               className="btn btn-secondary text-xs font-semibold rounded-full px-4 py-2.5 flex items-center gap-2"
             >
-              <Sparkles className="h-4 w-4 text-[rgb(var(--sg-accent))]" />
+              <Sparkles className="h-4 w-4 text-[#157343] dark:text-[rgb(var(--sg-accent))]" />
               <span>Ask StudyMate</span>
             </button>
-            <Link href="/calendar?create=1" className="btn btn-outline text-xs font-semibold rounded-full px-4 py-2.5 hidden sm:inline-flex">
+            <Link href="/calendar?create=1" className="text-xs font-semibold text-[#14422A] hover:underline px-3 py-2 hidden sm:inline-flex dark:text-[rgb(var(--sg-accent))]">
               New Session
             </Link>
           </div>
         </div>
 
-        {/* Subtle decorative leaf watermark in background */}
-        <div className="pointer-events-none absolute -bottom-10 -right-8 opacity-[0.05] dark:opacity-[0.08]" aria-hidden="true">
-          <svg className="h-64 w-64 text-[rgb(var(--sg-accent))]" fill="currentColor" viewBox="0 0 24 24">
+        {/* Subtle decorative leaf watermark on the right */}
+        <div className="pointer-events-none absolute -bottom-10 -right-8 text-[#D0E9DA] opacity-80 dark:text-[rgb(var(--sg-accent))] dark:opacity-[0.08]" aria-hidden="true">
+          <svg className="h-64 w-64 fill-current" viewBox="0 0 24 24">
             <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/>
           </svg>
         </div>
@@ -291,56 +291,56 @@ export default function DashboardPage() {
 
       {/* 3 Organic Metric Pills */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Key study metrics">
-        <div className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-5 shadow-sm transition hover:shadow-md">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span className="font-medium text-muted">Weekly focus time</span>
-            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', diffHrs >= 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-slate-500')}>
+        <div className="rounded-[16px] border border-[#E4ECE7] bg-white p-5 shadow-[0_4px_12px_rgba(15,31,23,0.04)] transition hover:shadow-md dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-[#5A6B62] dark:text-muted">Weekly focus time</span>
+            <span className="rounded-full bg-[#D8F0E2] text-[#157343] px-2 py-0.5 text-xs font-semibold dark:bg-emerald-500/10 dark:text-emerald-400">
               {diffHrs >= 0 ? `+${diffHrs.toFixed(1)}h` : `${diffHrs.toFixed(1)}h`} vs last wk
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-3xl font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">{weekHrs.toFixed(1)}</span>
-            <span className="text-sm font-medium text-muted">hours</span>
+            <span className="font-display text-3xl font-semibold tracking-tight text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">{weekHrs.toFixed(1)}</span>
+            <span className="text-sm font-medium text-[#5A6B62] dark:text-muted">hours</span>
           </div>
           {goalMin > 0 && (
             <div className="mt-3">
-              <div className="h-1.5 w-full rounded-full bg-[rgb(var(--sg-surface-muted))] overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-[#EAEFEC] overflow-hidden dark:bg-[rgb(var(--sg-surface-muted))]">
                 <div
-                  className="h-full w-full origin-left rounded-full bg-[rgb(var(--sg-accent))] transition-transform duration-1000"
+                  className="h-full w-full origin-left rounded-full bg-[#157343] transition-transform duration-1000 dark:bg-[rgb(var(--sg-accent))]"
                   style={{ transform: `scaleX(${barsLoaded ? Math.min(1, goalPct / 100) : 0})` }}
                 />
               </div>
-              <p className="mt-1.5 text-[11px] text-muted">{goalPct}% of {fmtHours(goalMin)} weekly goal reached</p>
+              <p className="mt-1.5 text-[11px] text-[#5A6B62] dark:text-muted">{goalPct}% of {fmtHours(goalMin)} weekly goal reached</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-5 shadow-sm transition hover:shadow-md">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span className="font-medium text-muted">Active study circles</span>
-            <Users className="h-4 w-4 text-[rgb(var(--sg-accent))]" />
+        <div className="rounded-[16px] border border-[#E4ECE7] bg-white p-5 shadow-[0_4px_12px_rgba(15,31,23,0.04)] transition hover:shadow-md dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-[#5A6B62] dark:text-muted">Active study circles</span>
+            <Users className="h-4 w-4 text-[#157343] dark:text-[rgb(var(--sg-accent))]" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-3xl font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">{data.stats.activeGroups}</span>
-            <span className="text-sm font-medium text-muted">circles</span>
+            <span className="font-display text-3xl font-semibold tracking-tight text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">{data.stats.activeGroups}</span>
+            <span className="text-sm font-medium text-[#5A6B62] dark:text-muted">circles</span>
           </div>
-          <p className="mt-3 text-xs text-secondary truncate">
+          <p className="mt-3 text-xs text-[#2C4035] dark:text-secondary truncate">
             {data.groups[0] ? `${data.groups[0].name} (${data.groups[0].memberCount} members)` : 'Browse groups to join circles'}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-5 shadow-sm transition hover:shadow-md">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span className="font-medium text-muted">Study growth streak</span>
+        <div className="rounded-[16px] border border-[#E4ECE7] bg-white p-5 shadow-[0_4px_12px_rgba(15,31,23,0.04)] transition hover:shadow-md dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-[#5A6B62] dark:text-muted">Study growth streak</span>
             <span className="text-base">🌱</span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-3xl font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">
+            <span className="font-display text-3xl font-semibold tracking-tight text-[#0F1F17] dark:text-[rgb(var(--sg-foreground))]">
               <StreakCount target={streak} />
             </span>
-            <span className="text-sm font-medium text-muted">days consistent</span>
+            <span className="text-sm font-medium text-[#5A6B62] dark:text-muted">days consistent</span>
           </div>
-          <p className="mt-3 text-xs text-secondary">
+          <p className="mt-3 text-xs text-[#2C4035] dark:text-secondary">
             {streak > 0 ? 'Consistency is blooming. Keep the momentum going!' : 'Complete one focus block today to start your streak.'}
           </p>
         </div>
@@ -365,12 +365,14 @@ export default function DashboardPage() {
             </div>
 
             {data.groups.length === 0 ? (
-              <EmptyState
-                icon={BookOpen}
-                title="No study circles yet"
-                description="Find groups tailored to your degree, subject or semester."
-                action={<Link href="/discover" className="btn btn-primary btn-sm rounded-full">Discover circles</Link>}
-              />
+              <div className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]">
+                <EmptyState
+                  icon={BookOpen}
+                  title="No study circles yet"
+                  description="Find groups tailored to your degree, subject or semester."
+                  action={<Link href="/discover" className="btn btn-primary btn-sm rounded-full">Discover circles</Link>}
+                />
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {data.groups.slice(0, 4).map((g) => (
@@ -410,7 +412,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Section: Upcoming Sessions & Today's Schedule */}
-          <section className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-6 shadow-sm" aria-label="Upcoming schedule">
+          <section className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]" aria-label="Upcoming schedule">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-display text-base font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">Upcoming Study Sessions</h2>
@@ -462,7 +464,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Section: Priority Tasks (with Optimistic Rollback Checkbox) */}
-          <section className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-6 shadow-sm" aria-label="Priority tasks">
+          <section className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]" aria-label="Priority tasks">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-display text-base font-semibold tracking-tight text-[rgb(var(--sg-foreground))]">Priority Tasks</h2>
@@ -528,7 +530,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           
           {/* Focus Greenhouse Live Rooms */}
-          <section className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-6 shadow-sm" aria-label="Focus rooms">
+          <section className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]" aria-label="Focus rooms">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm">🌿</span>
@@ -566,7 +568,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Weekly Study Rhythm */}
-          <section className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-6 shadow-sm" aria-label="Weekly rhythm">
+          <section className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]" aria-label="Weekly rhythm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display text-sm font-semibold text-[rgb(var(--sg-foreground))]">Study Rhythm</h3>
               <Link href="/analytics" className="text-xs font-semibold text-[rgb(var(--sg-accent))] hover:underline">
@@ -581,7 +583,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Recent Messages & Resources */}
-          <section className="rounded-2xl border border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-card))] p-6 shadow-sm" aria-label="Recent circle activity">
+          <section className="rounded-[16px] border border-[#E4ECE7] bg-white p-6 shadow-[0_4px_12px_rgba(15,31,23,0.04)] dark:border-[rgb(var(--sg-border))] dark:bg-[rgb(var(--sg-card))]" aria-label="Recent circle activity">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display text-sm font-semibold text-[rgb(var(--sg-foreground))]">Recent Circle Activity</h3>
               <Link href="/messages" className="text-xs font-semibold text-[rgb(var(--sg-accent))] hover:underline">

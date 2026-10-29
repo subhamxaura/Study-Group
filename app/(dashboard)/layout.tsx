@@ -193,7 +193,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="relative isolate flex h-full flex-col overflow-hidden">
       {/* Quad design mesh — visual only */}
       <div className="quad-mesh hidden dark:block" aria-hidden="true" />
-      <div className="flex shrink-0 items-center justify-between border-b px-[18px] pb-[18px] pt-[20px]">
+      <div className="flex shrink-0 items-center justify-between border-b border-[rgb(var(--sg-sidebar-border))] dark:border-white/[0.06] px-[18px] pb-[18px] pt-[20px]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <BrandMark />
           {!sidebarCollapsed && (
@@ -258,7 +258,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {!sidebarCollapsed && (
-          <div className="mt-2 border-t pt-[10px] dark:border-white/[0.06]">
+          <div className="mt-2 border-t border-[rgb(var(--sg-sidebar-border))] pt-[10px] dark:border-white/[0.06]">
             <p className="px-[18px] pb-2 text-[11.5px] font-medium text-muted">Groups</p>
             <div className="space-y-0">
               {myGroups.slice(0, 6).map((g, i) => (
@@ -287,7 +287,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </div>
 
-      <div className="shrink-0 border-t px-2 py-2 dark:border-white/[0.06]">
+      <div className="shrink-0 border-t border-[rgb(var(--sg-sidebar-border))] px-2 py-2 dark:border-white/[0.06]">
         {/* Quad user block — real user, links to profile (visual only, no logic change) */}
         {!sidebarCollapsed && (
           <Link href="/profile" className="mt-auto flex items-center gap-2.5 px-[8px] pb-2 pt-[14px]">
@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop sidebar — Quad: 220px, #0A0A14 in dark */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-card))] transition-all duration-200 dark:border-white/[0.06] dark:bg-[#0A0A14] lg:flex',
+          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] transition-all duration-200 dark:border-white/[0.06] dark:bg-[#0A0A14] lg:flex',
           sidebarCollapsed ? 'w-[68px]' : 'w-[220px]'
         )}
       >
@@ -338,7 +338,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
             <motion.aside
               initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-[rgb(var(--sg-card))] lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-[rgb(var(--sg-sidebar))] border-[rgb(var(--sg-sidebar-border))] dark:border-white/[0.06] dark:bg-[#0A0A14] lg:hidden"
             >
               {sidebar}
             </motion.aside>
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main column — Quad: 0 28px 40px content padding lives on pages */}
       <div className={cn('relative z-[1] flex min-h-screen w-full flex-col transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[220px]')}>
         {/* Topbar — Quad: sticky gradient fade, 460px search, 36px icon-btn, primary New session */}
-        <header className="sticky top-0 z-20 border-b bg-[rgb(var(--sg-card))]/90 backdrop-blur dark:border-transparent dark:bg-gradient-to-b dark:from-[#08080F] dark:via-[#08080F]/85 dark:to-transparent">
+        <header className="sticky top-0 z-20 border-b border-[rgb(var(--sg-border))] bg-[rgb(var(--sg-background))]/95 backdrop-blur dark:border-transparent dark:bg-gradient-to-b dark:from-[#08080F] dark:via-[#08080F]/85 dark:to-transparent">
           <div className="flex min-h-[60px] items-center gap-[14px] px-4 py-[18px] pb-[env(safe-area-inset-bottom)] sm:px-7">
             <div className="relative flex-1 md:max-w-[460px]">
               <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-muted hover:bg-[rgb(var(--sg-hover))] lg:hidden" aria-label="Open menu">
@@ -357,12 +357,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
               <button
                 onClick={() => setCommandOpen(true)}
-                className="hidden w-full items-center gap-2 rounded-[10px] border bg-[rgb(var(--sg-background))] py-[9px] pl-[34px] pr-[40px] text-left text-[13.5px] text-muted transition-colors hover:border-[rgb(var(--sg-accent))]/40 dark:border-white/[0.07] dark:bg-[#0F0F1A] md:flex"
+                className="hidden w-full items-center gap-2 rounded-[10px] border border-[#D8E6DD] bg-[#EDF2EF] py-[9px] pl-[34px] pr-[40px] text-left text-[13.5px] text-[#5A6B62] transition-colors hover:border-[#157343]/50 dark:border-white/[0.07] dark:bg-[#0F0F1A] dark:text-muted md:flex"
                 aria-label="Search sessions, notes, files"
               >
-                <Search className="absolute left-3 h-[15px] w-[15px] text-muted" aria-hidden="true" />
+                <Search className="absolute left-3 h-[15px] w-[15px] text-[#5A6B62] dark:text-muted" aria-hidden="true" />
                 <span>Search sessions, notes, files…</span>
-                <kbd className="absolute right-[10px] rounded-md border border-[rgb(var(--sg-border))] bg-white/[0.03] px-1.5 py-px font-sans text-[11px] dark:border-white/10">⌘K</kbd>
+                <kbd className="absolute right-[10px] rounded-md border border-[#D8E6DD] bg-[#DDE5E0] px-1.5 py-px font-sans text-[11px] text-[#5A6B62] dark:border-white/10 dark:bg-white/[0.03] dark:text-muted">⌘K</kbd>
               </button>
               {/* Compact search affordance on small screens — one tap to the palette */}
               <button
@@ -375,10 +375,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div className="ml-auto flex items-center gap-2.5">
               <StudymateButton />
-              <Link href="/groups?create=1" className="btn btn-secondary btn-sm hidden xl:inline-flex">
+              <Link href="/groups?create=1" className="btn btn-secondary btn-sm hidden xl:inline-flex rounded-full">
                 <Plus className="h-4 w-4" /> Create group
               </Link>
-              <Link href="/calendar?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex">
+              <Link href="/calendar?create=1" className="btn btn-primary btn-sm hidden sm:inline-flex rounded-full">
                 New session
               </Link>
               <ThemeToggle className="quad-icon-btn grid h-9 w-9 place-items-center rounded-[10px]" />
@@ -446,8 +446,8 @@ function PanelLeft({ className }: { className?: string }) {
 /** Brand icon mark — Quad gradient tile with Q (visual only, same identity). */
 function BrandMark() {
   return (
-    <span className="quad-brand-mark font-display grid h-[30px] w-[30px] flex-none place-items-center rounded-[9px] text-[16px] font-semibold text-white" aria-hidden="true">
-      <svg className="h-[18px] w-[18px] text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+    <span className="grid h-[32px] w-[32px] flex-none place-items-center rounded-[10px] bg-[#D8F0E2] text-[#157343] border border-[#CBE5D6] dark:quad-brand-mark dark:text-white" aria-hidden="true">
+      <svg className="h-[18px] w-[18px] text-[#157343] dark:text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
     </span>
   )
 }

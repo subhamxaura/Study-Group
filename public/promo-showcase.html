@@ -334,26 +334,34 @@
     </div>
 
     <!-- Chapter Quick-Jump Navigation -->
-    <div class="chapters-bar">
+    <div class="chapters-bar" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
       <div class="chapter-card active" onclick="seekTo(0)">
         <span class="chapter-time">0:00 - Scene 1</span>
-        <div class="chapter-title">The Hook & Sanctuary</div>
+        <div class="chapter-title">Subham's Welcome</div>
       </div>
-      <div class="chapter-card" onclick="seekTo(9)">
-        <span class="chapter-time">0:09 - Scene 2</span>
-        <div class="chapter-title">Study Circles</div>
+      <div class="chapter-card" onclick="seekTo(11.5)">
+        <span class="chapter-time">0:11 - Scene 2</span>
+        <div class="chapter-title">Unified Dashboard</div>
       </div>
-      <div class="chapter-card" onclick="seekTo(19)">
-        <span class="chapter-time">0:19 - Scene 3</span>
+      <div class="chapter-card" onclick="seekTo(22.2)">
+        <span class="chapter-time">0:22 - Scene 3</span>
         <div class="chapter-title">Focus Greenhouse</div>
       </div>
-      <div class="chapter-card" onclick="seekTo(27)">
-        <span class="chapter-time">0:27 - Scene 4</span>
+      <div class="chapter-card" onclick="seekTo(33.5)">
+        <span class="chapter-time">0:33 - Scene 4</span>
+        <div class="chapter-title">Calendar & Tasks</div>
+      </div>
+      <div class="chapter-card" onclick="seekTo(43.3)">
+        <span class="chapter-time">0:43 - Scene 5</span>
+        <div class="chapter-title">Study Analytics</div>
+      </div>
+      <div class="chapter-card" onclick="seekTo(53.5)">
+        <span class="chapter-time">0:53 - Scene 6</span>
         <div class="chapter-title">StudyMate AI Tutor</div>
       </div>
-      <div class="chapter-card" onclick="seekTo(36)">
-        <span class="chapter-time">0:36 - Scene 5</span>
-        <div class="chapter-title">Grand Finale & CTA</div>
+      <div class="chapter-card" onclick="seekTo(63.7)">
+        <span class="chapter-time">1:03 - Scene 7</span>
+        <div class="chapter-title">Full Suite & CTA</div>
       </div>
     </div>
 
@@ -398,16 +406,20 @@
     vid.addEventListener('timeupdate', () => {
       const cur = vid.currentTime;
       cards.forEach(c => c.classList.remove('active'));
-      if (cur < 9) {
-        cards[0].classList.add('active');
-      } else if (cur < 19) {
-        cards[1].classList.add('active');
-      } else if (cur < 27) {
-        cards[2].classList.add('active');
-      } else if (cur < 36) {
-        cards[3].classList.add('active');
+      if (cur < 11.5) {
+        cards[0]?.classList.add('active');
+      } else if (cur < 22.2) {
+        cards[1]?.classList.add('active');
+      } else if (cur < 33.5) {
+        cards[2]?.classList.add('active');
+      } else if (cur < 43.3) {
+        cards[3]?.classList.add('active');
+      } else if (cur < 53.5) {
+        cards[4]?.classList.add('active');
+      } else if (cur < 63.7) {
+        cards[5]?.classList.add('active');
       } else {
-        cards[4].classList.add('active');
+        cards[6]?.classList.add('active');
       }
     });
   </script>

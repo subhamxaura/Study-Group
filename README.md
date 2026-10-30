@@ -29,7 +29,9 @@
   <p align="center">
     <strong><a href="https://study-group-sigma.vercel.app/promo-showcase.html">▶️ Click Here to Watch the Official Promo Video (Interactive Showcase)</a></strong>
     <br />
-    <em>44s • 1080p Full HD • Lo-Fi Soundtrack • Voiceover Narration & Sound Effects</em>
+    <em>1:13 • 1080p Full HD • Lo-Fi Beats • Neural Male Voiceover • Real App Tour</em>
+    <br />
+    <sub><em>“Hii, my name is Subham, welcome to my study group app.”</em></sub>
   </p>
   <p align="center">
     <a href="https://study-group-sigma.vercel.app/promo-showcase.html">🌐 Interactive Web Showcase Player</a> &nbsp;•&nbsp; 

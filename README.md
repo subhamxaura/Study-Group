@@ -10,10 +10,33 @@
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-1.5_Flash-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
 [![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel)](https://study-group-sigma.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Promo Video](https://img.shields.io/badge/Promo_Video-Watch_Now-157343?style=for-the-badge&logo=youtube&logoColor=white)](https://study-group-sigma.vercel.app/promo-showcase.html)
 
 > **Study-Group** is an all-in-one student collaboration platform and productivity workspace. Create study circles, plan real-time study sessions, share academic resources, write versioned study notes, execute focused Pomodoro study blocks, and leverage **StudyMate AI** for personalized tutoring, notes summarization, and interactive quiz generation.
 
-🔗 **Live Production App:** [study-group-sigma.vercel.app](https://study-group-sigma.vercel.app)
+🔗 **Live Production App:** [study-group-sigma.vercel.app](https://study-group-sigma.vercel.app)  
+🎬 **Official Promo Video (1080p HD):** [Watch on Web Showcase](https://study-group-sigma.vercel.app/promo-showcase.html) • [Watch on GitHub](https://github.com/subhamxaura/Study-Group/blob/main/public/study-group-promo.mp4) • [Direct MP4 Stream](https://github.com/subhamxaura/Study-Group/raw/main/public/study-group-promo.mp4)
+
+---
+
+## 🎬 Official Promotional Video
+
+<div align="center">
+  <a href="https://study-group-sigma.vercel.app/promo-showcase.html" target="_blank" rel="noopener noreferrer">
+    <img src="public/promo_video_thumbnail.png" alt="Watch Study-Group Promo Video (1080p Full HD with Sound)" width="100%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 31, 23, 0.12);" />
+  </a>
+  <br />
+  <p align="center">
+    <strong><a href="https://study-group-sigma.vercel.app/promo-showcase.html">▶️ Click Here to Watch the Official Promo Video (Interactive Showcase)</a></strong>
+    <br />
+    <em>44s • 1080p Full HD • Lo-Fi Soundtrack • Voiceover Narration & Sound Effects</em>
+  </p>
+  <p align="center">
+    <a href="https://study-group-sigma.vercel.app/promo-showcase.html">🌐 Interactive Web Showcase Player</a> &nbsp;•&nbsp; 
+    <a href="https://github.com/subhamxaura/Study-Group/blob/main/public/study-group-promo.mp4">▶️ Watch on GitHub Player</a> &nbsp;•&nbsp; 
+    <a href="https://study-group-sigma.vercel.app/study-group-promo.mp4">📥 Direct Video Stream (MP4)</a>
+  </p>
+</div>
 
 ---
 

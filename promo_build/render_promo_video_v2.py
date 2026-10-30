@@ -93,23 +93,8 @@ def draw_subtitle_bar(draw, text):
     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=18, fill=(10, 22, 15, 235), outline=(34, 197, 94, 70), width=1)
     draw.text((WIDTH // 2, by1 + box_h // 2), text, font=FONT_SUBTITLE, fill=(245, 255, 248), anchor='mm')
 
-# Subtitles timeline
-SUBTITLES = [
-    (0, 165, "Hii, my name is Subham, welcome to my study group app."),
-    (165, 345, "An all-in-one collaborative workspace engineered to elevate your academic journey."),
-    (345, 500, "Start every day in your personal study sanctuary. Track active streaks..."),
-    (500, 666, "...set weekly focus targets, and jump into live study circles with a single click."),
-    (666, 830, "Step into the Focus Greenhouse. Join synchronized 25-minute Pomodoro rooms..."),
-    (830, 1005, "...immerse yourself in calming ambient audio, and eliminate study distractions."),
-    (1005, 1150, "Never miss an assignment again. Organize deadlines across interactive calendar views..."),
-    (1150, 1299, "...and prioritize your daily coursework with intuitive task boards."),
-    (1299, 1450, "Gain deep visibility into your habits. Visual analytics break down your study hours..."),
-    (1450, 1605, "...session consistency, and milestone achievements over time."),
-    (1605, 1750, "Supercharged by StudyMate AI. Ask tricky questions, summarize dense lecture notes..."),
-    (1750, 1911, "...and collaborate effortlessly with your peers in real time."),
-    (1911, 2060, "Everything you need to master your coursework, together. Welcome to Study Group."),
-    (2060, 2205, "Start cultivating your potential today. Visit study-group-sigma.vercel.app")
-]
+# Subtitles timeline — disabled per user request: voiceover speaks naturally without burned-in caption overlay
+SUBTITLES = []
 
 def get_subtitle(frame_idx):
     for s, e, txt in SUBTITLES:
@@ -158,18 +143,18 @@ for frame_idx in range(TOTAL_FRAMES):
     if frame_idx < 345:
         p_scene = frame_idx / 345.0
         glow_r = int(180 + 25 * math.sin(t * 3.0))
-        cx, cy = WIDTH // 2, 420
+        cx, cy = WIDTH // 2, 430
         fdraw.ellipse([cx - glow_r, cy - glow_r, cx + glow_r, cy + glow_r], fill=(21, 115, 67, 35))
         
         mark_scale = min(1.0, p_scene * 3.0)
-        draw_brand_mark(fdraw, cx, cy - 90, radius=int(60 * mark_scale))
+        draw_brand_mark(fdraw, cx, cy - 130, radius=int(65 * mark_scale))
         
         alpha_title = min(255, int(p_scene * 4.0 * 255))
-        fdraw.text((cx, cy + 20), "“Hii, my name is Subham, welcome to my study group app.”", font=FONT_HERO, fill=(255, 235, 180, alpha_title), anchor='mm')
-        fdraw.text((cx, cy + 95), "Study-Group · Cultivate Your Knowledge", font=FONT_HERO_SUB, fill=(52, 211, 153, alpha_title), anchor='mm')
-        fdraw.text((cx, cy + 145), "An all-in-one collaborative workspace engineered to elevate student productivity.", font=FONT_BODY, fill=(180, 215, 195, alpha_title), anchor='mm')
+        fdraw.text((cx, cy - 20), "Study-Group", font=FONT_HERO, fill=(255, 255, 255, alpha_title), anchor='mm')
+        fdraw.text((cx, cy + 45), "Cultivate Your Knowledge · Learn Together", font=FONT_HERO_SUB, fill=(52, 211, 153, alpha_title), anchor='mm')
+        fdraw.text((cx, cy + 100), "The all-in-one collaborative workspace engineered to elevate student productivity.", font=FONT_BODY, fill=(180, 215, 195, alpha_title), anchor='mm')
         
-        pill_y = cy + 225
+        pill_y = cy + 175
         pills = [
             ("✦ Collaborative Study Circles", 320),
             ("⏱ Focus Greenhouse Pomodoro", 330),
